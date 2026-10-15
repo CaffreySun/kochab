@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = ["crates/*", "apps/desktop/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/android-controller/android-controller"
+
+[workspace.dependencies]
+# ---- workspace crates ----
+android-core = { path = "crates/android-core" }
+adb-client = { path = "crates/adb-client" }
+scrcpy-protocol = { path = "crates/scrcpy-protocol" }
+scrcpy-session = { path = "crates/scrcpy-session" }
+
+# ---- runtime ----
+anyhow = "1.0"
+thiserror = "2.0"
+async-trait = "0.1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "fs", "sync", "time", "process"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+bytes = "1.10"
+futures-util = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.22"
+parking_lot = "0.12"
+
+# ---- dev ----
+tokio-test = "0.4"
+tempfile = "3"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = 1

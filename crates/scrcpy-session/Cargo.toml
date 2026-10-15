@@ -1,0 +1,25 @@
+[package]
+name = "scrcpy-session"
+description = "scrcpy 会话编排：推送 server、端口转发、握手、视频流泵与控制通道"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dev-dependencies]
+# 仅 examples/tests 用来打开日志
+tracing-subscriber = { workspace = true }
+
+[dependencies]
+adb-client.workspace = true
+android-core.workspace = true
+bytes.workspace = true
+futures-util.workspace = true
+parking_lot.workspace = true
+scrcpy-protocol.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true }
+tracing.workspace = true

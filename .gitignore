@@ -1,0 +1,39 @@
+# ---- Node / pnpm ----
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+
+# ---- Rust / Cargo ----
+target/
+**/target/
+.cargo/config.local.toml
+
+# ---- Tauri ----
+apps/desktop/src-tauri/gen/
+apps/desktop/dist/
+
+# ---- Build artifacts ----
+dist/
+build/
+*.app/
+*.dmg
+*.msi
+*.exe.manifest
+
+# ---- Test / coverage ----
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+screenshots/
+
+# ---- Env & secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Editor / OS ----
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

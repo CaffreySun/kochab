@@ -1,0 +1,4 @@
+{
+  "cSpell.words": ["adb", "scrcpy", "tsrs", "android-core", "adb-client", "clippy", "pygments"],
+  "files.ignore": ["target", "dist", "coverage", "pnpm-lock.yaml", "Cargo.lock"]
+}

@@ -1,0 +1,14 @@
+# 统一以 LF 入库。
+#
+# Prettier（endOfLine: lf）与 .editorconfig 都要求 LF。如果不在这里固定，
+# Windows 上 core.autocrlf=true 会把工作区写成 CRLF，于是刚 clone 下来
+# `pnpm verify` 的 format 阶段就会失败——而这跟代码本身无关。
+* text=auto eol=lf
+
+# 二进制资源：禁止任何行尾转换
+*.jar binary
+*.png binary
+*.ico binary
+*.icns binary
+*.mp4 binary
+*.apk binary

@@ -1,0 +1,257 @@
+//! 真机集成测试：设备属性、应用管理、文件管理。
+//!
+//! 默认跳过；`pnpm test:device` 会注入 `ANDROID_TEST_DEVICE` 后真正执行。
+//! 所有会修改设备状态的用例都必须自行清理。
+
+use std::path::PathBuf;
+
+use adb_client::AdbClient;
+use android_core::testing::{skip_reason, temp_name};
+use android_core::{app, device, file, toolchain};
+
+macro_rules! require_device {
+    () => {
+        match android_core::testing::device_serial() {
+            Some(serial) => serial,
+            None => {
+                eprintln!("跳过：{}", skip_reason());
+                return;
+            }
+        }
+    };
+}
+
+fn client() -> AdbClient {
+    AdbClient::connect().expect("默认 adb 端点应当可解析")
+}
+
+#[tokio::test]
+async fn 工具链自检不返回未知问题() {
+    let c = client();
+    let status = toolchain::diagnose(Some(&c)).await;
+
+    // adb 一定可达（否则 client() 就失败了）；scrcpy server 可能缺失，但那要有明确文案
+    assert!(status.adb_server_reachable);
+    for problem in &status.problems {
+        assert!(!problem.trim().is_empty(), "问题文案不应为空");
+    }
+}
+
+#[tokio::test]
+async fn 采集设备属性() {
+    let serial = require_device!();
+    let c = client();
+
+    let devices = c.devices().await.expect("列举设备失败");
+    let entry = devices
+        .iter()
+        .find(|d| d.serial == serial)
+        .expect("目标设备不在列表中");
+    assert!(entry.state.is_ready(), "设备未就绪：{}", entry.state);
+
+    let info = device::collect(&c, &serial, entry.state)
+        .await
+        .expect("采集属性失败");
+
+    assert_eq!(info.serial, serial);
+    assert!(info.is_ready());
+    assert!(info.model.is_some(), "缺少机型");
+    assert!(info.android_version.is_some(), "缺少 Android 版本");
+    assert!(info.sdk_int.is_some(), "缺少 SDK 版本");
+    assert!(!info.title().is_empty());
+}
+
+#[tokio::test]
+async fn 列出应用包含系统与用户应用() {
+    let serial = require_device!();
+    let c = client();
+
+    let all = app::list(&c, &serial, None, true)
+        .await
+        .expect("列出应用失败");
+    assert!(all.len() > 10, "应用数量异常：{}", all.len());
+
+    assert!(all.iter().any(|a| a.is_system), "应包含系统应用");
+    assert!(all.iter().any(|a| !a.is_system), "应包含用户应用");
+
+    // 列表应已排序：用户应用在前
+    let first_system = all.iter().position(|a| a.is_system);
+    if let Some(idx) = first_system {
+        assert!(
+            all[idx..].iter().all(|a| a.is_system),
+            "排序错误：系统应用应全部排在末尾"
+        );
+    }
+}
+
+#[tokio::test]
+async fn 筛选应用只返回匹配项() {
+    let serial = require_device!();
+    let c = client();
+
+    let filtered = app::list(&c, &serial, Some("com.android.settings"), true)
+        .await
+        .expect("筛选失败");
+
+    assert!(!filtered.is_empty());
+    for entry in &filtered {
+        assert!(
+            entry
+                .package_name
+                .to_lowercase()
+                .contains("com.android.settings"),
+            "筛选结果包含无关应用：{}",
+            entry.package_name
+        );
+    }
+}
+
+#[tokio::test]
+async fn 只显示用户应用时不含系统应用() {
+    let serial = require_device!();
+    let c = client();
+
+    let user_apps = app::list(&c, &serial, None, false)
+        .await
+        .expect("列出用户应用失败");
+
+    assert!(!user_apps.is_empty(), "用户应用列表为空");
+    assert!(user_apps.iter().all(|a| !a.is_system), "不应包含系统应用");
+}
+
+#[tokio::test]
+async fn 系统应用的_dumpsys_详情可解析() {
+    let serial = require_device!();
+    let c = client();
+
+    // com.android.settings 在几乎所有 Android 设备上都存在
+    let details = app::details(&c, &serial, "com.android.settings")
+        .await
+        .expect("读取详情失败");
+
+    assert_eq!(details.package_name, "com.android.settings");
+    assert!(details.version_name.is_some(), "缺少 versionName");
+    assert!(details.is_system);
+}
+
+#[tokio::test]
+async fn 列出外部存储根目录() {
+    let serial = require_device!();
+    let c = client();
+
+    let entries = file::list(&c, &serial, "/sdcard")
+        .await
+        .expect("列出 /sdcard 失败");
+
+    assert!(!entries.is_empty(), "/sdcard 为空");
+    // 目录在前：第一个文件之前必须全是目录
+    if let Some(first_file) = entries.iter().position(|e| !e.is_directory) {
+        assert!(
+            entries[..first_file].iter().all(|e| e.is_directory),
+            "目录应排在文件之前"
+        );
+    }
+}
+
+#[tokio::test]
+async fn 列出不存在的目录返回空或报错但不崩溃() {
+    let serial = require_device!();
+    let c = client();
+
+    // sync 协议对不存在的目录只回 DONE，即空列表
+    let result = file::list(&c, &serial, "/__ac_missing_dir__").await;
+
+    match result {
+        Ok(entries) => assert!(entries.is_empty(), "不存在的目录应返回空列表"),
+        Err(e) => eprintln!("（设备以错误方式报告缺失目录：{e}）"),
+    }
+}
+
+#[tokio::test]
+async fn 文件往返传输并校验内容() {
+    let serial = require_device!();
+    let c = client();
+
+    let dir = tempfile::tempdir().expect("创建临时目录失败");
+    let local_src: PathBuf = dir.path().join("src.bin");
+    let local_dst: PathBuf = dir.path().join("dst.bin");
+    let name = temp_name("file");
+    let remote = format!("/sdcard/Download/{name}.bin");
+
+    let payload: Vec<u8> = (0..300_000u32).map(|i| (i % 253) as u8).collect();
+    std::fs::write(&local_src, &payload).expect("写入本地文件失败");
+
+    file::push(&c, &serial, &local_src, &remote)
+        .await
+        .expect("上传失败");
+    file::pull(&c, &serial, &remote, &local_dst)
+        .await
+        .expect("下载失败");
+
+    assert_eq!(std::fs::read(&local_dst).unwrap(), payload);
+
+    file::delete(&c, &serial, &remote)
+        .await
+        .expect("清理远端文件失败");
+    assert!(
+        file::stat(&c, &serial, &remote).await.unwrap().is_none(),
+        "删除后应查不到"
+    );
+}
+
+#[tokio::test]
+async fn 新建目录后可见再删除() {
+    let serial = require_device!();
+    let c = client();
+
+    let name = temp_name("dir");
+    let remote = format!("/sdcard/Download/{name}");
+
+    file::create_dir(&c, &serial, &remote)
+        .await
+        .expect("新建目录失败");
+    let found = file::stat(&c, &serial, &remote)
+        .await
+        .expect("查询目录失败");
+    assert!(
+        found.is_some_and(|e| e.is_directory),
+        "新建的目录应可见且为目录"
+    );
+
+    file::delete_recursive(&c, &serial, &remote)
+        .await
+        .expect("删除目录失败");
+    assert!(file::stat(&c, &serial, &remote).await.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn 重命名文件() {
+    let serial = require_device!();
+    let c = client();
+
+    let name = temp_name("rename");
+    let source = format!("/sdcard/Download/{name}.txt");
+    let target = format!("/sdcard/Download/{name}_renamed.txt");
+
+    let dir = tempfile::tempdir().unwrap();
+    let local = dir.path().join("src.txt");
+    std::fs::write(&local, b"rename test").unwrap();
+
+    file::push(&c, &serial, &local, &source)
+        .await
+        .expect("上传失败");
+    file::rename(&c, &serial, &source, &target)
+        .await
+        .expect("重命名失败");
+
+    assert!(
+        file::stat(&c, &serial, &source).await.unwrap().is_none(),
+        "旧名字应消失"
+    );
+    assert!(
+        file::stat(&c, &serial, &target).await.unwrap().is_some(),
+        "新名字应存在"
+    );
+
+    file::delete(&c, &serial, &target).await.expect("清理失败");
+}

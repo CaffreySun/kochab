@@ -1,0 +1,50 @@
+[package]
+name = "android-controller"
+description = "Android Controller 桌面应用"
+authors = ["Android Controller Contributors"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+default-run = "android-controller"
+
+[lib]
+name = "android_controller_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "android-controller"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+adb-client.workspace = true
+android-core.workspace = true
+scrcpy-protocol.workspace = true
+scrcpy-session.workspace = true
+
+anyhow.workspace = true
+base64.workspace = true
+futures-util.workspace = true
+parking_lot.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+thiserror.workspace = true
+tokio = { workspace = true }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[features]
+# 默认关闭：仅在需要跑真机集成测试时打开
+device-tests = []
+# 供 `pnpm gen:bindings` 使用
+codegen = []
+
+[dev-dependencies]
+tempfile.workspace = true

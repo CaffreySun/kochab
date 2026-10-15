@@ -1,0 +1,183 @@
+body {
+  margin: 0;
+  color: var(--ac-text-primary);
+  background: var(--ac-bg-page);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.ac-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ac-app__header {
+  display: flex;
+  gap: var(--ac-space-md);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ac-space-md) var(--ac-space-lg);
+  background: var(--ac-bg-container);
+  border-bottom: 1px solid var(--ac-border-color);
+}
+
+.ac-app__brand {
+  display: flex;
+  gap: var(--ac-space-sm);
+  align-items: baseline;
+}
+
+.ac-app__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ac-app__subtitle {
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+.ac-app__main {
+  flex: 1;
+  padding: var(--ac-space-lg);
+}
+
+.ac-app__toolbar {
+  display: flex;
+  gap: var(--ac-space-sm);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ac-space-md);
+}
+
+.ac-app__count {
+  color: var(--ac-text-secondary);
+  font-size: 13px;
+}
+
+\.ac-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--ac-space-md);
+}
+
+/* ------------------------------------------------------------------ *
+ * 导航与页面骨架
+ * ------------------------------------------------------------------ */
+
+.ac-app__nav {
+  flex: 1;
+  padding: 0 var(--ac-space-lg) var(--ac-space-lg);
+  background: var(--ac-bg-page);
+}
+
+.ac-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-md);
+  padding-top: var(--ac-space-md);
+}
+
+.ac-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  align-items: center;
+}
+
+.ac-page__inline-switch {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--ac-text-secondary);
+  font-size: 13px;
+}
+
+/* 应用列表里的「名称 + 包名」两行单元格 */
+.ac-app-cell {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.ac-app-cell__name {
+  font-weight: 500;
+}
+
+.ac-app-cell__package {
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+/* 文件列表里可点击的条目 */
+.ac-files__breadcrumb {
+  margin-bottom: var(--ac-space-xs);
+}
+
+.ac-files__entry {
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.ac-files__entry:disabled {
+  color: var(--ac-text-secondary);
+  cursor: default;
+}
+
+/* ------------------------------------------------------------------ *
+ * 投屏
+ * ------------------------------------------------------------------ */
+
+.ac-mirror {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-md);
+  padding-top: var(--ac-space-md);
+}
+
+.ac-mirror__toolbar,
+.ac-mirror__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-sm);
+}
+
+.ac-mirror__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: var(--ac-space-md);
+  background: #101114;
+  border: 1px solid var(--ac-border-color);
+  border-radius: 6px;
+}
+
+.ac-mirror__canvas {
+  max-width: 100%;
+  max-height: 70vh;
+  background: #000;
+
+  /* 触摸坐标要按元素实际尺寸换算，因此不能拉伸变形 */
+  object-fit: contain;
+  touch-action: none;
+}
+
+.ac-mirror__hint {
+  color: var(--ac-text-placeholder);
+  font-size: 13px;
+}

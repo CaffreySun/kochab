@@ -1,0 +1,21 @@
+{
+  "name": "@ac/ipc-contract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Rust ↔ 渲染进程之间的类型契约（由 ts-rs 从 Rust 侧生成）",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:types",
+    "@vitest/coverage-v8": "catalog:test",
+    "typescript": "catalog:dev",
+    "vitest": "catalog:test"
+  }
+}

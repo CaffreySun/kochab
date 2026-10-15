@@ -1,0 +1,174 @@
+/**
+ * 后端 → 渲染进程的传输结构。
+ *
+ * 序列化规则由 Rust 侧的 `#[serde(rename_all = "camelCase")]` 决定；
+ * 此处字段名必须逐字匹配，否则运行时会拿到 undefined。
+ * `cargo test -p android-controller` 会校验契约文件与命令清单的一致性。
+ */
+
+/** adb 设备连接状态 */
+export type DeviceConnectionState =
+  'offline' | 'unauthorized' | 'connecting' | 'device' | 'authorizing' | 'unknown';
+
+/** 设备连接方式 */
+export type DeviceTransport = 'usb' | 'wifi' | 'emulator';
+
+export interface DeviceInfo {
+  /** adb serial，例如 `d4535f72` 或 `192.168.1.10:5555` */
+  serial: string;
+  state: DeviceConnectionState;
+  isEmulator: boolean;
+  /** ro.product.model */
+  model: string | null;
+  /** ro.product.manufacturer */
+  manufacturer: string | null;
+  /** ro.product.brand */
+  brand: string | null;
+  /** ro.product.device */
+  device: string | null;
+  /** ro.build.version.release */
+  androidVersion: string | null;
+  /** ro.build.version.sdk */
+  sdkInt: number | null;
+  /** 屏幕尺寸，形如 `1080x2400`；已覆盖时为开发者选项设置的值 */
+  screenResolution: string | null;
+  transport: DeviceTransport;
+}
+
+export interface AppInfo {
+  packageName: string;
+  /** pm list -f 解析出的 apk 安装路径 */
+  apkPath: string | null;
+  versionName: string | null;
+  versionCode: number | null;
+  /** 应用显示名；无法确定时为 null，前端回退到包名 */
+  label: string | null;
+  /** 是否为系统应用（安装在 /system、/product 等分区） */
+  isSystem: boolean;
+  /** 是否处于启用状态 */
+  enabled: boolean;
+  /** Unix 毫秒时间戳 */
+  firstInstallTime: number | null;
+  lastUpdateTime: number | null;
+  grantedPermissions: number | null;
+  apkSizeBytes: number | null;
+}
+
+export interface FileEntry {
+  name: string;
+  /** 设备端绝对路径 */
+  path: string;
+  isDirectory: boolean;
+  isSymlink: boolean;
+  /** 目录为 null */
+  sizeBytes: number | null;
+  /** Unix 权限位，形如 `drwxr-xr-x` */
+  permissions: string;
+  /** Unix 毫秒时间戳 */
+  modifiedAt: number | null;
+  owner: string | null;
+  group: string | null;
+}
+
+/**
+ * shell 执行结果。
+ *
+ * 注意：`adb shell` 会把 stdout 与 stderr 合并，因此这里没有 `stderr` 字段。
+ */
+export interface ShellOutput {
+  command: string;
+  exitCode: number;
+  stdout: string;
+  timedOut: boolean;
+}
+
+export interface InstallResult {
+  /** pm install 不回显包名，安装成功后为 null，由前端刷新列表获取 */
+  packageName: string | null;
+  /** `Success` 或 `Failure [INSTALL_FAILED_xxx]` */
+  rawOutput: string;
+  success: boolean;
+}
+
+export interface ToolchainStatus {
+  adbPath: string | null;
+  adbVersion: string | null;
+  adbServerReachable: boolean;
+  scrcpyServerPath: string | null;
+  /** 面向用户的问题列表，空数组表示一切正常 */
+  problems: string[];
+}
+
+/** 桌面应用自身的版本信息 */
+export interface AppSelfInfo {
+  name: string;
+  version: string;
+  tauriVersion: string;
+}
+
+/** 后端返回的统一错误结构 */
+export interface CommandError {
+  /** 稳定的机器可读错误码 */
+  code: string;
+  /** 面向用户的可读文案 */
+  message: string;
+}
+
+// ---------------------------------------------------------------- 投屏会话
+
+/** 视频编码格式，取自字节流的 ASCII FOURCC */
+export type VideoCodec = 'h264' | 'h265' | 'av1' | 'vp8' | 'vp9' | 'unknown';
+
+/** 会话协商完成后的元信息 */
+export interface SessionInfo {
+  /** 由 `sessionId` 字符串散列而来，同时用作 scrcpy 的 scid */
+  sessionId: number;
+  serial: string;
+  /** 本机监听端口 */
+  localPort: number;
+  /** 设备端 abstract socket 名 */
+  deviceSocket: string;
+  /** 设备在 server 侧的名字，形如 `MIX 2S` */
+  deviceName: string;
+  /** 视频宽度（设备像素） */
+  width: number;
+  /** 视频高度（设备像素） */
+  height: number;
+  codec: VideoCodec;
+}
+
+/**
+ * 一个编码后的视频包。
+ *
+ * `data` 是 base64 —— Tauri 事件负载走 JSON，直接传字节数组会有约 4 倍膨胀。
+ */
+export interface VideoFramePayload {
+  sessionId: number;
+  /** 单调递增，前端据此发现丢帧 */
+  sequence: number;
+  /** 展示时间戳（微秒）；config 包为 0 */
+  ptsUs: number;
+  keyFrame: boolean;
+  /** 编码器初始化数据（SPS/PPS），必须交给解码器 configure */
+  config: boolean;
+  data: string;
+}
+
+/** 周期性统计 */
+export interface SessionStats {
+  sessionId: number;
+  frames: number;
+  keyFrames: number;
+  bytes: number;
+  dropped: number;
+  /** 最近一个统计窗口内的帧率 */
+  fps: number;
+}
+
+/** 会话结束 */
+export interface SessionClosedPayload {
+  sessionId: number;
+  /** `true` = 用户主动停止；`false` = 视频流意外中断 */
+  requested: boolean;
+  reason: string | null;
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@ac/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Android Controller 桌面应用（Tauri 2 + React + TDesign）",
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:web": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "package": "tauri build",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@ac/ipc-contract": "workspace:*",
+    "@ac/scrcpy-web": "workspace:*",
+    "@ac/ui": "workspace:*",
+    "@tauri-apps/api": "catalog:",
+    "@tauri-apps/plugin-dialog": "catalog:",
+    "@tauri-apps/plugin-opener": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tdesign-icons-react": "catalog:",
+    "tdesign-react": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.2",
+    "@testing-library/dom": "catalog:test",
+    "@testing-library/jest-dom": "catalog:test",
+    "@testing-library/react": "catalog:test",
+    "@testing-library/user-event": "catalog:test",
+    "@types/node": "catalog:types",
+    "@types/react": "catalog:types",
+    "@types/react-dom": "catalog:types",
+    "@vitejs/plugin-react": "catalog:dev",
+    "@vitest/coverage-v8": "catalog:test",
+    "jsdom": "catalog:test",
+    "typescript": "catalog:dev",
+    "vite": "catalog:dev",
+    "vitest": "catalog:test"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "android-controller",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "跨平台 Android 设备管理与投屏控制软件（adb + scrcpy 协议 / Tauri 2 + TDesign）",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=22.11.0"
+  },
+  "scripts": {
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "pnpm --filter @ac/desktop run dev:web",
+    "verify": "node scripts/verify.mjs",
+    "verify:fast": "node scripts/verify.mjs --fast",
+    "verify:fix": "node scripts/verify.mjs --fix",
+    "verify:list": "node scripts/verify.mjs --list",
+    "format": "node scripts/verify.mjs --stages format --fix",
+    "lint": "node scripts/verify.mjs --stages lint",
+    "lint:fix": "node scripts/verify.mjs --stages lint --fix",
+    "typecheck": "node scripts/verify.mjs --stages typecheck",
+    "test": "node scripts/verify.mjs --stages test",
+    "test:coverage": "node scripts/verify.mjs --stages test --coverage",
+    "test:device": "node scripts/device-tests.mjs",
+    "build": "node scripts/verify.mjs --stages build",
+    "gen:bindings": "node scripts/gen-bindings.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:lint",
+    "@types/node": "catalog:types",
+    "eslint": "catalog:lint",
+    "eslint-plugin-jsonc": "catalog:lint",
+    "eslint-plugin-react": "catalog:lint",
+    "eslint-plugin-react-hooks": "catalog:lint",
+    "globals": "catalog:lint",
+    "prettier": "catalog:lint",
+    "stylelint": "catalog:lint",
+    "stylelint-config-recommended": "catalog:lint",
+    "stylelint-config-standard": "catalog:lint",
+    "typescript": "catalog:dev",
+    "typescript-eslint": "catalog:lint",
+    "vite": "catalog:dev",
+    "vitest": "catalog:test"
+  }
+}

@@ -1,0 +1,76 @@
+@import 'tdesign-react/es/style/index.css';
+@import './components.css';
+
+/**
+ * 应用级设计令牌。
+ *
+ * 只在这里定义「语义」变量（surface / border / text …），
+ * 组件一律引用语义变量，不直接引用 TDesign 原始色值，
+ * 这样换肤 / 深色模式只需替换本文件。
+ */
+
+:root {
+  --ac-bg-page: var(--td-bg-color-page);
+  --ac-bg-container: var(--td-bg-color-container);
+  --ac-bg-hover: var(--td-bg-color-component-hover);
+  --ac-bg-active: var(--td-bg-color-component-active);
+
+  --ac-border-color: var(--td-component-border);
+  --ac-border-color-strong: var(--td-component-stroke);
+
+  --ac-text-primary: var(--td-text-color-primary);
+  --ac-text-secondary: var(--td-text-color-secondary);
+  --ac-text-placeholder: var(--td-text-color-placeholder);
+
+  --ac-brand: var(--td-brand-color);
+  --ac-brand-hover: var(--td-brand-color-hover);
+  --ac-brand-light: var(--td-brand-color-light);
+
+  --ac-radius-sm: var(--td-radius-small);
+  --ac-radius-md: var(--td-radius-medium);
+
+  --ac-shadow-card: var(--td-shadow-2);
+  --ac-shadow-overlay: var(--td-shadow-3);
+
+  --ac-space-xs: 4px;
+  --ac-space-sm: 8px;
+  --ac-space-md: 16px;
+  --ac-space-lg: 24px;
+  --ac-space-xl: 32px;
+
+  --ac-transition-base: var(--td-transition-base);
+}
+
+/* 尊重系统的减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ac-transition-base: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 全局滚动条，与 TDesign 视觉保持一致 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--td-scrollbar-thumb-bg);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--td-scrollbar-thumb-bg-hover);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

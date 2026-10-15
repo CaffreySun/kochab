@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+target
+pnpm-lock.yaml
+apps/desktop/src-tauri/gen
+apps/desktop/src-tauri/icons
+*.md
+pnpm-workspace.yaml
