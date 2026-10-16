@@ -3,34 +3,32 @@ import type { WorkspaceTab } from '../../pages/DevicesPage';
 import { buildDeviceUrl } from '../../windowMode';
 
 /**
- * 请求设备窗口切到某个标签。
+ * 主窗口 → 详情窗口的入口意图。
  *
- * 只用于**前端窗口之间**（主窗口 → 设备窗口），不经过 Rust，因此不进
- * `@ac/ipc-contract` 的事件表——那张表是与 Rust `emit` 调用点一一对应的。
- * 命名仍沿用 `<领域>://<事件>` 约定。
+ * 只用于**前端窗口之间**，不经过 Rust，因此不进 `@ac/ipc-contract` 的事件表——
+ * 那张表是与 Rust `emit` 调用点一一对应的。命名仍沿用 `<领域>://<事件>` 约定。
  */
-export const DEVICE_TAB_EVENT = 'device://tab-request';
+export const DEVICE_ENTRY_EVENT = 'device://entry-request';
 
-export interface DeviceTabRequest {
+export interface DeviceEntryRequest {
   tab: WorkspaceTab;
 }
 
 /**
  * 窗口标签是 `device-<serial>`：**一台设备只有一个窗口**。
  *
- * 投屏 / 应用 / 文件是同一个窗口里的标签页，切换时不再开新窗口。
- * 需要并排看时开两个设备窗口没有意义（同一设备同时只能有一条投屏会话），
- * 真要并排的是两台不同设备。
+ * 投屏常驻左栏，应用 / 文件 / 概览是右栏的标签页；再点卡片上的入口只是
+ * 让它聚焦并切到对应状态，不再开新窗口。
  */
 export function deviceWindowLabel(serial: string): string {
   return `device-${serial}`;
 }
 
 /**
- * 打开（或聚焦）某台设备的独立窗口，并切到指定标签。
+ * 打开（或聚焦）某台设备的详情窗口，并送达入口意图。
  *
- * 窗口已存在时不重建视图：投屏会话是有状态的，重建会把正在跑的会话打断，
- * 所以改用窗口事件把「切标签」的意图送进去。
+ * 窗口已存在时不重建视图：投屏会话是有状态的，重建会把它打断，
+ * 所以改用窗口事件把「切到哪个面板 / 是否开始投屏」送进去。
  */
 export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promise<void> {
   const url = buildDeviceUrl(serial, tab);
@@ -51,7 +49,7 @@ export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promi
       await existing.unminimize();
       await existing.setFocus();
       const { emitTo } = await import('@tauri-apps/api/event');
-      await emitTo(label, DEVICE_TAB_EVENT, { tab } satisfies DeviceTabRequest);
+      await emitTo(label, DEVICE_ENTRY_EVENT, { tab } satisfies DeviceEntryRequest);
       return;
     }
   } catch {
@@ -61,10 +59,11 @@ export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promi
   const created = new WebviewWindow(label, {
     title: `设备 · ${serial}`,
     url,
-    width: 1080,
-    height: 760,
-    minWidth: 720,
-    minHeight: 540,
+    width: 1280,
+    height: 840,
+    // 两栏都要能用：投屏区不能太窄，右栏表格也要放得下。
+    minWidth: 960,
+    minHeight: 600,
     center: true,
     focus: true,
   });

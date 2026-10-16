@@ -271,42 +271,100 @@ body {
  * 否则多开几个窗口时无法分辨自己在看哪台设备。
  * ------------------------------------------------------------------ */
 
-.ac-device-window {
+.ac-detail {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-md);
   box-sizing: border-box;
   height: 100vh;
-  padding: var(--ac-space-lg);
-  overflow: auto;
+  padding: var(--ac-space-md);
+  overflow: hidden;
 }
 
-.ac-device-window__header {
+.ac-detail__header {
   display: flex;
+  flex: none;
   flex-wrap: wrap;
   gap: var(--ac-space-sm);
-  align-items: baseline;
-  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--ac-space-sm);
 }
 
-.ac-device-window__header strong {
+.ac-detail__identity {
+  display: flex;
+  gap: var(--ac-space-sm);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.ac-detail__identity strong {
   font-size: 16px;
   font-weight: 600;
 }
 
-.ac-device-window__header span {
+.ac-detail__identity span {
   color: var(--ac-text-secondary);
   font-size: 13px;
 }
 
-/* 投屏磁贴在独立窗口里可以吃掉剩余高度，不必再靠外层撑开 */
-.ac-device-window .ac-mirror-tile {
+.ac-detail__body {
+  display: flex;
   flex: 1;
   min-height: 0;
 }
 
-.ac-device-window .ac-page {
+/* 左栏常驻投屏：宽度由拖拽比例给出（内联 flex-basis），这里只保证不被压扁 */
+.ac-detail__mirror {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.ac-detail__splitter {
+  position: relative;
+  flex: none;
+  width: 10px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: col-resize;
+}
+
+/* 1px 分隔线比拖拽热区窄，这样放大命中范围但不显得笨重 */
+.ac-detail__splitter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--ac-border-color);
+  transform: translateX(-50%);
+}
+
+.ac-detail__splitter:hover::before,
+.ac-detail__splitter:focus-visible::before {
+  width: 3px;
+  background: var(--td-brand-color);
+}
+
+.ac-detail__panel {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ac-detail__panel-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ac-detail__panel-body > * {
+  flex: 1;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -408,6 +466,9 @@ body {
 }
 
 .ac-app-cell__name {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
   font-weight: 500;
 }
 
@@ -435,97 +496,170 @@ body {
 }
 
 /* ------------------------------------------------------------------ *
- * 投屏磁贴
+ * 投屏面板（详情页左栏常驻）
  * ------------------------------------------------------------------ */
 
-.ac-mirror-tile {
+.ac-mirror-pane {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: var(--ac-space-sm);
-  padding: var(--ac-space-sm);
+  gap: var(--ac-space-xs);
+  min-width: 0;
+  padding: var(--ac-space-xs);
   background: var(--ac-bg-container);
   border: 1px solid var(--ac-border-color);
   border-radius: 8px;
 }
 
-/* 放大：样式层面全屏，画布仍是同一个节点，无需在组件间搬运 */
-.ac-mirror-tile--expanded {
-  position: fixed;
-  inset: 3vh 4vw;
-  z-index: 100;
-  overflow: auto;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 30%);
-}
-
-.ac-mirror-tile__header {
-  display: flex;
-  gap: var(--ac-space-sm);
-  align-items: center;
-  justify-content: space-between;
-}
-
-.ac-mirror-tile__title {
-  overflow: hidden;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ac-mirror-tile__stage {
+/* 画面吃掉所有剩余高度：投屏是这一栏存在的理由，控制条只占最下面一行 */
+.ac-mirror-pane__stage {
   position: relative;
   display: flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  min-height: 320px;
-  padding: var(--ac-space-sm);
+  min-height: 0;
+  overflow: hidden;
   background: #101114;
   border-radius: 6px;
 }
 
-.ac-mirror-tile__canvas {
+.ac-mirror-pane__canvas {
   max-width: 100%;
-  max-height: 68vh;
+  max-height: 100%;
   object-fit: contain;
   touch-action: none;
 }
 
-.ac-mirror-tile__hint {
+.ac-mirror-pane__overlay {
   position: absolute;
-  color: var(--ac-text-placeholder);
-  font-size: 13px;
-}
-
-.ac-mirror-tile__error {
-  margin: 0;
-  color: var(--td-error-color);
-  font-size: 12px;
-}
-
-.ac-mirror-tile__footer {
+  inset: 0;
   display: flex;
   flex-direction: column;
   gap: var(--ac-space-sm);
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ac-space-md);
+  text-align: center;
+}
+
+.ac-mirror-pane__hint {
+  max-width: 28ch;
+  margin: 0;
+  color: #b6bcc6;
+  font-size: 12px;
+}
+
+.ac-mirror-pane__controls {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--ac-space-xs);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ac-mirror-pane__text {
+  display: flex;
+  flex: none;
+  gap: var(--ac-space-xs);
 }
 
 /* ------------------------------------------------------------------ *
- * 设备工作区
+ * 设备概览
  * ------------------------------------------------------------------ */
 
-.ac-workspace__bar {
+.ac-overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-md);
+  min-height: 0;
+  padding-right: var(--ac-space-xs);
+  overflow: auto;
+}
+
+.ac-overview__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--ac-space-md);
+}
+
+.ac-overview__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-xs);
+  padding: var(--ac-space-md);
+  background: var(--ac-bg-container);
+  border: 1px solid var(--ac-border-color);
+  border-radius: 8px;
+}
+
+.ac-overview__card h3 {
+  margin: 0;
+  color: var(--ac-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ac-overview__headline {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-sm);
+  gap: var(--ac-space-xs);
   align-items: center;
-  margin-bottom: var(--ac-space-sm);
 }
 
-.ac-workspace__bar > * {
-  flex: none;
-}
-
-.ac-workspace__title {
+.ac-overview__big {
+  font-size: 22px;
   font-weight: 600;
+}
+
+.ac-overview__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.ac-overview__row {
+  display: flex;
+  gap: var(--ac-space-sm);
+}
+
+.ac-overview__row dt {
+  flex: 0 0 84px;
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+.ac-overview__row dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.ac-overview__volume {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ac-overview__volume-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.ac-overview__muted {
+  margin: 0;
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+.ac-overview__empty {
+  margin: 0;
+  color: var(--ac-text-placeholder);
+  font-size: 13px;
 }
 
 /* ------------------------------------------------------------------ *

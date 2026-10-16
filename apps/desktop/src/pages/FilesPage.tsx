@@ -210,18 +210,17 @@ export function FilesPage({ api, device }: FilesPageProps) {
                 </button>
               ),
             },
-            { colKey: 'permissions', title: '权限', width: 130 },
             {
               colKey: 'sizeBytes',
               title: '大小',
-              width: 110,
+              width: 100,
               cell: ({ row }: { row: FileEntry }) =>
                 row.sizeBytes === null ? '—' : formatBytes(row.sizeBytes),
             },
             {
               colKey: 'modifiedAt',
               title: '修改时间',
-              width: 180,
+              width: 156,
               cell: ({ row }: { row: FileEntry }) =>
                 row.modifiedAt === null ? '—' : new Date(row.modifiedAt).toLocaleString(),
             },

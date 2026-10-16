@@ -104,7 +104,7 @@ export function AppsPage({ api, device }: AppsPageProps) {
             clearable
             placeholder="搜索包名或应用名"
             size="small"
-            style={{ width: 240 }}
+            style={{ width: 200 }}
             value={keyword}
             onChange={(value) => setKeyword(value)}
           />
@@ -149,35 +149,25 @@ export function AppsPage({ api, device }: AppsPageProps) {
               title: '应用',
               cell: ({ row }: { row: AppInfo }) => (
                 <div className="ac-app-cell">
-                  <span className="ac-app-cell__name">{row.label ?? row.packageName}</span>
+                  <span className="ac-app-cell__name">
+                    {row.label ?? row.packageName}
+                    {/* 类型并进名称行：右栏只有半个窗口宽，独立一列不划算 */}
+                    <Tag
+                      size="small"
+                      theme={row.isSystem ? 'default' : 'primary'}
+                      variant="light-outline"
+                    >
+                      {row.isSystem ? '系统' : '第三方'}
+                    </Tag>
+                  </span>
                   <span className="ac-app-cell__package">{row.packageName}</span>
                 </div>
               ),
             },
             {
-              colKey: 'version',
-              title: '版本',
-              width: 140,
-              cell: ({ row }: { row: AppInfo }) => row.versionName ?? '—',
-            },
-            {
-              colKey: 'kind',
-              title: '类型',
-              width: 90,
-              cell: ({ row }: { row: AppInfo }) => (
-                <Tag
-                  size="small"
-                  theme={row.isSystem ? 'default' : 'primary'}
-                  variant="light-outline"
-                >
-                  {row.isSystem ? '系统' : '第三方'}
-                </Tag>
-              ),
-            },
-            {
               colKey: 'actions',
               title: '操作',
-              width: 300,
+              width: 220,
               cell: ({ row }: { row: AppInfo }) => (
                 <Space size="small">
                   <Button

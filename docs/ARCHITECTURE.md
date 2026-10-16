@@ -144,10 +144,10 @@ packages/ipc-contract/src/
   以 `session_start` / `session_stop` 显式控制，前端持有 `sessionId`。
 - **文件浏览是请求式的**：路径即状态，可分享、可前进后退。
 - **设备详情是独立窗口**：主窗口只负责设备列表与缩略图，每台设备开一个窗口
-  （标签 `device-<serial>`），投屏 / 应用 / 文件是窗口内的三个标签页，
-  切换标签只改窗口内状态。主窗口再次点这台设备的其它入口时，聚焦已有窗口并
-  发一个 `device://tab-request` 窗口事件让它切过去——不重建窗口，否则会打断
-  正在跑的投屏会话。用同一个前端产物 + 查询串区分形态，
+  （标签 `device-<serial>`）。窗口内是「投屏常驻左栏 + 右栏切换 应用 / 文件 / 概览」，
+  左栏宽度可拖拽；投屏面板**不参与标签切换**，否则切面板会卸载它并打断会话。
+  主窗口再点这台设备的其它入口时，聚焦已有窗口并发一个 `device://entry-request`
+  事件送达入口意图，而不是重建窗口。用同一个前端产物 + 查询串区分形态，
   见 [ADR 0009](adr/0009-independent-device-windows-and-session-priority.md)。
 - **同一设备只有一条会话，按优先级抢占**：设备端 abstract socket 独占，
   卡片缩略图（`PREVIEW_PRIORITY`）与投屏窗口（`MIRROR_PRIORITY`）会争抢。
