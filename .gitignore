@@ -37,3 +37,6 @@ screenshots/
 Thumbs.db
 .idea/
 *.swp
+
+# ---- 本地 agent 工具配置 ----
+opencode.json
