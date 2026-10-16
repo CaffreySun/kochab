@@ -112,7 +112,7 @@ const MOCK_FILES: FileEntry[] = [
 
 const MOCK_TOOLCHAIN: ToolchainStatus = {
   adbPath: '/usr/local/bin/adb',
-  adbVersion: '41',
+  adbVersion: '1.0.41',
   adbServerReachable: false,
   scrcpyServerPath: null,
   problems: ['当前运行在浏览器预览模式，所有数据均为演示数据。'],

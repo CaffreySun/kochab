@@ -4,6 +4,7 @@ import { ANDROID_KEY, KEYCODE_BACK } from '@ac/scrcpy-web';
 import type { DeviceInfo } from '@ac/ipc-contract';
 import type { Api } from '../../ipc';
 import { MIRROR_PRIORITY, useMirror } from './useMirror';
+import { useMirrorOptions } from '../settings/mirrorOptions';
 
 export interface MirrorTileProps {
   api: Api | null;
@@ -19,7 +20,21 @@ export interface MirrorTileProps {
  */
 export function MirrorTile({ api, device }: MirrorTileProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const mirror = useMirror(api, device.serial, canvasRef, {}, 'mirror', MIRROR_PRIORITY);
+  const options = useMirrorOptions();
+  const mirror = useMirror(
+    api,
+    device.serial,
+    canvasRef,
+    {
+      maxSize: options.maxSize,
+      maxFps: options.maxFps,
+      bitRate: options.bitRate,
+      showTouches: options.showTouches,
+      stayAwake: options.stayAwake,
+    },
+    'mirror',
+    MIRROR_PRIORITY,
+  );
   const [draftText, setDraftText] = useState('');
   const [expanded, setExpanded] = useState(false);
   const dragging = useRef(false);

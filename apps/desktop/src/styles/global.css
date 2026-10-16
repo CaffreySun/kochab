@@ -58,6 +58,21 @@ body {
   object-fit: contain;
 }
 
+.ac-shell__nav-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--td-error-color);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
 .ac-shell__nav {
   display: flex;
   flex-direction: column;
@@ -66,6 +81,8 @@ body {
 }
 
 .ac-shell__nav-item {
+  /* 角标要相对导航项定位 */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -122,6 +139,10 @@ body {
 
 .ac-shell__body {
   flex: 1;
+
+  /* 必须显式归零：column flex item 的 min-width 默认是 auto，
+     会被子元素的 max-content 撑开，导致内部工具栏永远「够宽」而不换行。 */
+  min-width: 0;
   padding: var(--ac-space-lg);
   overflow: auto;
 }
@@ -148,6 +169,99 @@ body {
 .ac-batch__result {
   margin: 0;
   color: var(--ac-text-secondary);
+}
+
+/* 任务页 */
+.ac-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-md);
+}
+
+.ac-tasks__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  align-items: center;
+}
+
+.ac-task {
+  padding: var(--ac-space-md);
+  border-radius: var(--ac-radius-md);
+  background: var(--ac-bg-page);
+  border: 1px solid var(--ac-border-color);
+}
+
+.ac-task__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ac-space-sm);
+}
+
+.ac-task__summary,
+.ac-task__time {
+  color: var(--ac-text-secondary);
+  font-size: 12px;
+}
+
+.ac-task__items {
+  margin: var(--ac-space-sm) 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.ac-task__item {
+  display: flex;
+  gap: var(--ac-space-sm);
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: 1px dashed var(--ac-border-color);
+  font-size: 13px;
+}
+
+.ac-task__item:last-child {
+  border-bottom: none;
+}
+
+.ac-task__serial {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ac-task__detail {
+  color: var(--ac-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-task__item--bad .ac-task__serial,
+.ac-task__item--bad .ac-task__detail {
+  color: var(--td-error-color);
+}
+
+/* 分组对话框：选项 + 新建 + 删除 */
+.ac-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-md);
+}
+
+.ac-group__remove {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-xs);
+}
+
+.ac-group__hint {
+  margin: 0;
+  color: var(--ac-text-secondary);
+  font-size: 12px;
 }
 
 /* ------------------------------------------------------------------ *
@@ -464,4 +578,54 @@ body {
 .ac-settings__problems {
   margin: 0;
   padding-left: 1.2em;
+}
+
+/* ------------------------------------------------------------------ *
+ * 「更多 -> 命令行」弹层
+ * ------------------------------------------------------------------ */
+
+.ac-shell-popup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-sm);
+  width: 360px;
+  max-width: 90vw;
+  padding: var(--ac-space-md);
+}
+
+.ac-shell-popup__actions {
+  display: flex;
+  gap: var(--ac-space-sm);
+  justify-content: flex-end;
+}
+
+.ac-shell-popup__result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-xs);
+  padding-top: var(--ac-space-sm);
+  border-top: 1px solid var(--ac-border-color);
+}
+
+.ac-shell-popup__result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+/* 命令输出：等宽字体 + 限高可滚动，长输出不能把弹层撑成无限高 */
+.ac-shell-popup__output {
+  max-height: 240px;
+  margin: 0;
+  padding: var(--ac-space-sm);
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--ac-bg-page);
+  border-radius: 4px;
 }

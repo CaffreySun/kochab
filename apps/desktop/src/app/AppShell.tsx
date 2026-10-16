@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { MobileIcon, SettingIcon } from 'tdesign-icons-react';
+import { MobileIcon, OrderListIcon, SettingIcon } from 'tdesign-icons-react';
 import { Tooltip } from 'tdesign-react';
 import logoUrl from '../../../../assets/app-icon.svg';
 
 /** 左侧栏可切换的顶层视图。 */
-export type ShellView = 'devices' | 'settings';
+export type ShellView = 'devices' | 'tasks' | 'settings';
 
 export interface AppShellProps {
   active: ShellView;
@@ -13,11 +13,14 @@ export interface AppShellProps {
   title: string;
   /** 标题右侧的操作区（刷新、连接设备等） */
   toolbar?: ReactNode;
+  /** 进行中的任务数，在导航项上显示角标 */
+  runningCount?: number;
   children: ReactNode;
 }
 
 const NAV: Array<{ key: ShellView; label: string; icon: ReactNode }> = [
   { key: 'devices', label: '设备', icon: <MobileIcon size="22px" /> },
+  { key: 'tasks', label: '任务', icon: <OrderListIcon size="22px" /> },
   { key: 'settings', label: '设置', icon: <SettingIcon size="22px" /> },
 ];
 
@@ -27,7 +30,14 @@ const NAV: Array<{ key: ShellView; label: string; icon: ReactNode }> = [
  * 导航栏只负责「切换内容区显示哪一块」，不承载业务状态；
  * 内容的选中态（哪台设备、哪个标签）由各页面自己管理。
  */
-export function AppShell({ active, onChange, title, toolbar, children }: AppShellProps) {
+export function AppShell({
+  active,
+  onChange,
+  title,
+  toolbar,
+  runningCount = 0,
+  children,
+}: AppShellProps) {
   return (
     <div className="ac-shell">
       <aside className="ac-shell__sidebar">
@@ -52,6 +62,9 @@ export function AppShell({ active, onChange, title, toolbar, children }: AppShel
               >
                 {item.icon}
                 <span className="ac-shell__nav-label">{item.label}</span>
+                {item.key === 'tasks' && runningCount > 0 ? (
+                  <span className="ac-shell__nav-badge">{runningCount}</span>
+                ) : null}
               </button>
             </Tooltip>
           ))}

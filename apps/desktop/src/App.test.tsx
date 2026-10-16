@@ -94,4 +94,23 @@ describe('App 外壳', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('adb server 未在响应');
     expect(screen.queryAllByTestId('device-card')).toHaveLength(0);
   });
+
+  // 回归：updateMirrorOptions 一度被写成柯里化 `() => (next) => ...`，
+  // 调用方按普通回调传参，于是设置页改什么都没落盘——跨窗口共享自然是坏的。
+  it('在设置页改投屏参数会写进 localStorage', async () => {
+    window.localStorage.clear();
+    const user = await renderApp();
+
+    await user.click(screen.getByTestId('nav-settings'));
+    const maxSize = (await screen.findAllByRole('textbox'))[0]!;
+
+    await user.clear(maxSize);
+    await user.type(maxSize, '720');
+
+    await waitFor(() => {
+      const raw = window.localStorage.getItem('ac.mirrorOptions');
+      expect(raw).not.toBeNull();
+      expect(JSON.parse(raw!)).toMatchObject({ maxSize: 720 });
+    });
+  });
 });

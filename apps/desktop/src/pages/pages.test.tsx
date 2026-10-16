@@ -1,17 +1,26 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type React from 'react';
 import { COMMANDS, type DeviceInfo } from '@ac/ipc-contract';
 import { createApi } from '../ipc';
 import { createMockTransport } from '../ipc/mock';
 import { AppsPage } from './AppsPage';
 import { DevicesPage } from './DevicesPage';
 import { DeviceWorkspacePage } from './DeviceWorkspacePage';
+import { SettingsPage } from './SettingsPage';
+import { DeviceMoreMenu } from '../features/devices/DeviceMoreMenu';
+import { TasksProvider } from '../features/tasks/TasksProvider';
 import { useDevices } from '../features/devices/useDevices';
 import { FilesPage } from './FilesPage';
 import { MirrorTile } from '../features/mirror/MirrorTile';
 import { MIRROR_PRIORITY, PREVIEW_PRIORITY } from '../features/mirror/useMirror';
 import { openDeviceWindow } from '../features/window/openDeviceWindow';
+import {
+  DEFAULT_MIRROR_OPTIONS,
+  readMirrorOptions,
+  writeMirrorOptions,
+} from '../features/settings/mirrorOptions';
 
 // 独立窗口靠 Tauri 的 WebviewWindow 创建；单测只关心「点了按钮开哪个窗口」。
 vi.mock('../features/window/openDeviceWindow', () => ({
@@ -171,9 +180,15 @@ describe('DevicesPage（多设备）', () => {
   const second = { ...READY_DEVICE, serial: 'emulator-5554', model: 'Pixel 7' };
 
   /** DevicesPage 的设备数据由上层传入，测试里用真实 hook 的薄包装提供。 */
+  // 批量工具栏要读全局任务队列，单测里照样要包 Provider，
+  // 否则测的是一个生产环境不存在的组件树。
   function DevicesPageHarness(props: Omit<React.ComponentProps<typeof DevicesPage>, 'devices'>) {
     const devices = useDevices(props.api);
-    return <DevicesPage {...props} devices={devices} />;
+    return (
+      <TasksProvider>
+        <DevicesPage {...props} devices={devices} />
+      </TasksProvider>
+    );
   }
 
   function renderPage(overrides: Record<string, unknown> = {}, limit = 4) {
@@ -243,6 +258,23 @@ describe('DevicesPage（多设备）', () => {
     expect(PREVIEW_PRIORITY).toBeLessThan(MIRROR_PRIORITY);
   });
 
+  it('批量重启后任务页留下逐台结果', async () => {
+    const user = userEvent.setup();
+    const { api } = setup({ device_list: [READY_DEVICE] });
+    render(<DevicesPageHarness previewEnabled api={api} previewLimit={4} />);
+
+    const cards = await screen.findAllByTestId('device-card');
+    await user.click(within(cards[0]!).getByRole('checkbox'));
+    await user.click(await screen.findByRole('button', { name: '重启设备' }));
+
+    // 任务队列是异步逐台跑的，等它落到终态
+    await waitFor(
+      () => {
+        expect(screen.getByText('重启设备')).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+  });
   it('预览并发受上限约束：超出的设备显示关闭占位', async () => {
     renderPage({ device_list: [READY_DEVICE, second] }, 1);
 
@@ -282,6 +314,93 @@ describe('DevicesPage（多设备）', () => {
     await user.click(within(cards[0]!).getByRole('checkbox'));
 
     expect(screen.getByText('已选 1 台')).toBeInTheDocument();
+  });
+
+  it('新建分组后设备归入该分组', async () => {
+    window.localStorage.clear();
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE] });
+
+    const card = (await screen.findAllByTestId('device-card'))[0]!;
+    await user.click(within(card).getByTestId('device-select'));
+    await user.type(await screen.findByPlaceholderText('新建分组名称'), '测试组');
+    await user.click(confirmDialog());
+
+    await waitFor(() => {
+      expect(within(card).getByText('测试组')).toBeInTheDocument();
+    });
+  });
+
+  // 回归：applyAssign 之前不更新 current，高亮会停在旧分组。
+  it('对话框里改分组会即时更新高亮', async () => {
+    window.localStorage.clear();
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE] });
+
+    const card = (await screen.findAllByTestId('device-card'))[0]!;
+    await user.click(within(card).getByTestId('device-select'));
+    await user.type(await screen.findByPlaceholderText('新建分组名称'), 'A组');
+    await user.click(confirmDialog());
+    await waitFor(() => expect(within(card).getByText('A组')).toBeInTheDocument());
+
+    await user.click(within(card).getByTestId('device-select'));
+    await user.click(await screen.findByRole('button', { name: '未分组' }));
+
+    await waitFor(() => {
+      expect(within(card).getByText('未分组')).toBeInTheDocument();
+    });
+  });
+});
+
+/** Dialog 挂在 body 上，用 role 查询即可（按钮文案由 DevicesPage 显式指定）。 */
+function confirmDialog(): HTMLElement {
+  return screen.getByRole('button', { name: '确定' });
+}
+
+describe('DeviceMoreMenu', () => {
+  // 回归：最初只弹一条 toast 就关掉弹层，命令的 stdout 被直接丢掉。
+  it('命令行执行后要在弹层里展示输出', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<DeviceMoreMenu api={api} device={READY_DEVICE} />);
+
+    await user.click(screen.getByLabelText('更多'));
+    await user.click(await screen.findByText('命令行'));
+
+    await user.type(
+      await screen.findByPlaceholderText('例如：dumpsys battery'),
+      'getprop ro.product.model',
+    );
+    await user.click(screen.getByRole('button', { name: '执行' }));
+
+    const output = await screen.findByTestId('shell-output');
+    expect(output).toHaveTextContent('ok');
+    expect(onInvoke).toHaveBeenCalledWith(COMMANDS.shellExec, {
+      serial: 'd4535f72',
+      command: 'getprop ro.product.model',
+    });
+  });
+
+  // 回归：命令写成 `ip -4 route show wlan0` 会被 Android 的 iproute2 拒绝，
+  // 于是手机明明连着 Wi-Fi 也报「读不到 Wi-Fi 地址」。
+  it('无线连接能读出 wlan0 的 IPv4 地址', async () => {
+    const { api } = setup({
+      shell_exec: () => ({
+        command: 'ip -4 addr show wlan0',
+        exitCode: 0,
+        stdout:
+          '30: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP\n' +
+          '    inet 192.168.1.158/24 brd 192.168.1.255 scope global wlan0\n',
+        timedOut: false,
+      }),
+    });
+    const user = userEvent.setup();
+    render(<DeviceMoreMenu api={api} device={READY_DEVICE} />);
+
+    await user.click(screen.getByLabelText('更多'));
+    await user.click(await screen.findByText('无线连接'));
+
+    expect(await screen.findByText(/192\.168\.1\.158:5555/)).toBeInTheDocument();
   });
 });
 
@@ -350,5 +469,84 @@ describe('DeviceWorkspacePage', () => {
     render(<DeviceWorkspacePage api={api} device={null} tab="apps" onTabChange={vi.fn()} />);
 
     expect(screen.getByText('设备未连接')).toBeInTheDocument();
+  });
+});
+
+describe('SettingsPage', () => {
+  const renderSettings = (props: Partial<React.ComponentProps<typeof SettingsPage>> = {}) =>
+    render(
+      <SettingsPage
+        previewEnabled
+        api={null}
+        mirrorOptions={DEFAULT_MIRROR_OPTIONS}
+        previewLimit={8}
+        onMirrorOptionsChange={vi.fn()}
+        onPreviewEnabledChange={vi.fn()}
+        onPreviewLimitChange={vi.fn()}
+        {...props}
+      />,
+    );
+
+  // 回归：Form.FormItem 会给直接子控件注入 value=undefined，把显式 value 覆盖成空。
+  it('所有受控输入框与开关都要真正显示传入的值', () => {
+    const { container } = renderSettings();
+
+    const values = Array.from(container.querySelectorAll('input')).map((i) => i.value);
+    expect(values).toEqual(['1080', '30', '8', '8']);
+
+    const switches = Array.from(container.querySelectorAll('.t-switch'));
+    expect(switches).toHaveLength(3);
+    for (const node of switches) {
+      expect(node.className).toContain('t-is-checked');
+    }
+  });
+
+  it('关闭的开关要真实反映为关闭', () => {
+    const { container } = renderSettings({
+      mirrorOptions: { ...DEFAULT_MIRROR_OPTIONS, showTouches: false, stayAwake: false },
+      previewEnabled: false,
+    });
+
+    const switches = Array.from(container.querySelectorAll('.t-switch'));
+    expect(switches.map((n) => n.className.includes('t-is-checked'))).toEqual([
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  it('修改分辨率上限会回传新设置', async () => {
+    const onMirrorOptionsChange = vi.fn();
+    const { container } = renderSettings({ onMirrorOptionsChange });
+
+    const maxSize = container.querySelector('input');
+    expect(maxSize).not.toBeNull();
+    await userEvent.clear(maxSize!);
+    await userEvent.type(maxSize!, '720');
+
+    expect(onMirrorOptionsChange).toHaveBeenCalledWith(expect.objectContaining({ maxSize: 720 }));
+  });
+});
+
+describe('mirrorOptions 持久化', () => {
+  it('maxSize=0 表示不限制，读回来必须还是 0', () => {
+    writeMirrorOptions({ ...DEFAULT_MIRROR_OPTIONS, maxSize: 0 });
+
+    expect(readMirrorOptions().maxSize).toBe(0);
+  });
+
+  it('损坏的数值回落到默认值', () => {
+    window.localStorage.setItem(
+      'ac.mirrorOptions',
+      JSON.stringify({ maxSize: 'big', maxFps: -5, bitRate: null, showTouches: 'yes' }),
+    );
+
+    expect(readMirrorOptions()).toEqual(DEFAULT_MIRROR_OPTIONS);
+  });
+
+  it('缺失存储时返回默认值', () => {
+    window.localStorage.removeItem('ac.mirrorOptions');
+
+    expect(readMirrorOptions()).toEqual(DEFAULT_MIRROR_OPTIONS);
   });
 });

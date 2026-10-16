@@ -4,6 +4,7 @@ import type { ToolchainStatus } from '@ac/ipc-contract';
 import type { Api } from '../ipc';
 import { toMessage } from '../ipc';
 import { DEFAULT_PREVIEW_LIMIT } from './DevicesPage';
+import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../features/settings/mirrorOptions';
 
 export interface SettingsPageProps {
   api: Api | null;
@@ -11,6 +12,8 @@ export interface SettingsPageProps {
   onPreviewEnabledChange: (enabled: boolean) => void;
   previewLimit: number;
   onPreviewLimitChange: (limit: number) => void;
+  mirrorOptions: MirrorOptions;
+  onMirrorOptionsChange: (options: MirrorOptions) => void;
 }
 
 /** 设置页：预览开关与并发上限、工具链自检。 */
@@ -20,6 +23,8 @@ export function SettingsPage({
   onPreviewEnabledChange,
   previewLimit,
   onPreviewLimitChange,
+  mirrorOptions,
+  onMirrorOptionsChange,
 }: SettingsPageProps) {
   const [diagnostics, setDiagnostics] = useState<ToolchainStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,6 +50,82 @@ export function SettingsPage({
   return (
     <div className="ac-settings">
       <section className="ac-settings__section">
+        <h2 className="ac-settings__heading">投屏画质</h2>
+        <p className="ac-settings__hint">
+          新开投屏窗口时使用的默认参数。改动会立即保存，新开的窗口按新参数建立会话；
+          已经建立的会话不受影响。
+        </p>
+        <Form labelAlign="left" labelWidth={120}>
+          <Form.FormItem help="短边像素上限；填 0 表示跟随设备原始分辨率" label="分辨率上限">
+            <div>
+              <InputNumber
+                max={4096}
+                min={0}
+                step={120}
+                theme="column"
+                value={mirrorOptions.maxSize}
+                onChange={(value) =>
+                  onMirrorOptionsChange({ ...mirrorOptions, maxSize: Number(value) || 0 })
+                }
+              />
+            </div>
+          </Form.FormItem>
+          <Form.FormItem help="每秒帧率上限" label="帧率">
+            <div>
+              <InputNumber
+                max={120}
+                min={1}
+                theme="column"
+                value={mirrorOptions.maxFps}
+                onChange={(value) =>
+                  onMirrorOptionsChange({
+                    ...mirrorOptions,
+                    maxFps: Number(value) || DEFAULT_MIRROR_OPTIONS.maxFps,
+                  })
+                }
+              />
+            </div>
+          </Form.FormItem>
+          <Form.FormItem help="视频码率（Mbps）" label="码率">
+            <div>
+              <InputNumber
+                max={100}
+                min={1}
+                theme="column"
+                value={mirrorOptions.bitRate}
+                onChange={(value) =>
+                  onMirrorOptionsChange({
+                    ...mirrorOptions,
+                    bitRate: Number(value) || DEFAULT_MIRROR_OPTIONS.bitRate,
+                  })
+                }
+              />
+            </div>
+          </Form.FormItem>
+          <Form.FormItem label="显示触摸点">
+            <div>
+              <Switch
+                value={mirrorOptions.showTouches}
+                onChange={(value) =>
+                  onMirrorOptionsChange({ ...mirrorOptions, showTouches: Boolean(value) })
+                }
+              />
+            </div>
+          </Form.FormItem>
+          <Form.FormItem label="保持屏幕常亮">
+            <div>
+              <Switch
+                value={mirrorOptions.stayAwake}
+                onChange={(value) =>
+                  onMirrorOptionsChange({ ...mirrorOptions, stayAwake: Boolean(value) })
+                }
+              />
+            </div>
+          </Form.FormItem>
+        </Form>
+      </section>
+
+      <section className="ac-settings__section">
         <h2 className="ac-settings__heading">设备列表预览</h2>
         <p className="ac-settings__hint">
           卡片上的实时缩略图本质是一条低清低帧率的投屏会话。同一台设备同时只能有一条会话，
@@ -52,16 +133,20 @@ export function SettingsPage({
         </p>
         <Form labelAlign="left" labelWidth={120}>
           <Form.FormItem label="开启缩略图">
-            <Switch value={previewEnabled} onChange={onPreviewEnabledChange} />
+            <div>
+              <Switch value={previewEnabled} onChange={onPreviewEnabledChange} />
+            </div>
           </Form.FormItem>
           <Form.FormItem help="设备较多时限制同时预览的数量，避免主机解码压力过大" label="并发上限">
-            <InputNumber
-              max={12}
-              min={1}
-              theme="column"
-              value={previewLimit}
-              onChange={(value) => onPreviewLimitChange(Number(value) || DEFAULT_PREVIEW_LIMIT)}
-            />
+            <div>
+              <InputNumber
+                max={12}
+                min={1}
+                theme="column"
+                value={previewLimit}
+                onChange={(value) => onPreviewLimitChange(Number(value) || DEFAULT_PREVIEW_LIMIT)}
+              />
+            </div>
           </Form.FormItem>
         </Form>
       </section>

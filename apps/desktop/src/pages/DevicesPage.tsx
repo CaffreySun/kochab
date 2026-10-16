@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Input, Select, Space, Tag } from 'tdesign-react';
+import { Button, Dialog, Input, Select, Space, Tag } from 'tdesign-react';
 import { LinkIcon, RefreshIcon, SearchIcon } from 'tdesign-icons-react';
 import type { DeviceConnectionState, DeviceInfo } from '@ac/ipc-contract';
 import { DeviceCard, EmptyState, type DeviceCardAction } from '@ac/ui';
@@ -7,6 +7,7 @@ import type { Api } from '../ipc';
 import { DevicePreview } from '../features/preview/DevicePreview';
 import { DeviceMoreMenu } from '../features/devices/DeviceMoreMenu';
 import { BatchToolbar } from '../features/devices/BatchToolbar';
+import { UNGROUPED, useDeviceGroups } from '../features/devices/useDeviceGroups';
 import type { DevicesState } from '../features/devices/useDevices';
 import { openDeviceWindow } from '../features/window/openDeviceWindow';
 
@@ -39,11 +40,18 @@ export function DevicesPage({
   const [address, setAddress] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [groupFilter, setGroupFilter] = useState<string>('all');
+  const [assignTarget, setAssignTarget] = useState<{ serial: string; current: string } | null>(
+    null,
+  );
+  const [newGroupName, setNewGroupName] = useState('');
+  const { groups, groupOf, assign, createAndAssign, removeGroup } = useDeviceGroups();
 
   const visible = useMemo(() => {
     const needle = keyword.trim().toLowerCase();
-    return devices.filter((device) => {
+    const matched = devices.filter((device) => {
       if (stateFilter !== 'all' && device.state !== stateFilter) return false;
+      if (groupFilter !== 'all' && groupOf(device.serial) !== groupFilter) return false;
       if (!needle) return true;
       return (
         device.serial.toLowerCase().includes(needle) ||
@@ -51,7 +59,17 @@ export function DevicesPage({
         (device.manufacturer ?? '').toLowerCase().includes(needle)
       );
     });
-  }, [devices, keyword, stateFilter]);
+    // 按分组聚在一起，未分组排最后；组内保持 adb 上报的原始顺序。
+    const order = new Map<string, number>(groups.names.map((name, index) => [name, index]));
+    const rank = (name: string): number => {
+      if (name === UNGROUPED) return Number.MAX_SAFE_INTEGER;
+      return order.get(name) ?? Number.MAX_SAFE_INTEGER;
+    };
+    return [...matched].sort((a, b) => {
+      const diff = rank(groupOf(a.serial)) - rank(groupOf(b.serial));
+      return diff !== 0 ? diff : 0;
+    });
+  }, [devices, keyword, stateFilter, groupFilter, groupOf, groups.names]);
 
   /** 前 N 台就绪设备参与缩略图预览，避免设备一多就把主机压垮 */
   const previewSerials = useMemo(() => {
@@ -100,70 +118,94 @@ export function DevicesPage({
     }
   };
 
+  // assign 之后必须同步高亮：否则对话框里选中的分组和设备的真实分组会对不上。
+  const applyAssign = (name: string) => {
+    if (!assignTarget) return;
+    assign(assignTarget.serial, name);
+    setAssignTarget({ ...assignTarget, current: name === UNGROUPED ? UNGROUPED : name });
+  };
+
+  const deleteGroup = (name: string) => {
+    removeGroup(name);
+    setAssignTarget((prev) =>
+      prev && prev.current === name ? { ...prev, current: UNGROUPED } : prev,
+    );
+  };
+
   return (
     <>
       <div className="ac-devices__toolbar">
-        <Space breakLine size="small">
-          <Select
-            options={[
-              { label: '全部状态', value: 'all' },
-              { label: '已连接', value: 'device' },
-              { label: '未授权', value: 'unauthorized' },
-              { label: '已断开', value: 'offline' },
-            ]}
-            size="small"
-            style={{ width: 120 }}
-            value={stateFilter}
-            onChange={(value) => setStateFilter(value as StateFilter)}
-          />
-          <Input
-            clearable
-            placeholder="搜索设备"
-            prefixIcon={<SearchIcon />}
-            size="small"
-            style={{ width: 150 }}
-            value={keyword}
-            onChange={(value) => setKeyword(value)}
-          />
-          <Tag variant="light-outline">已选 {selected.size} 台</Tag>
-          <Tag variant="light-outline">
-            共 {visible.length} 台 · 预览 {previewSerials.size}/{previewLimit}
-          </Tag>
-        </Space>
+        {/* 单一 flex 容器：所有控件都是直接 flex item，换行行为完全可控。
+            两个 <Space> 会各自占 max-content 宽度，右侧「刷新」会被挤出可视区。 */}
+        <Select
+          options={[
+            { label: '全部状态', value: 'all' },
+            { label: '已连接', value: 'device' },
+            { label: '未授权', value: 'unauthorized' },
+            { label: '已断开', value: 'offline' },
+          ]}
+          size="small"
+          style={{ width: 110 }}
+          value={stateFilter}
+          onChange={(value) => setStateFilter(value as StateFilter)}
+        />
+        <Select
+          options={[
+            { label: '全部分组', value: 'all' },
+            ...groups.names.map((name) => ({ label: name, value: name })),
+            { label: UNGROUPED, value: UNGROUPED },
+          ]}
+          size="small"
+          style={{ width: 120 }}
+          value={groupFilter}
+          onChange={(value) => setGroupFilter(typeof value === 'string' ? value : 'all')}
+        />
+        <Input
+          clearable
+          placeholder="搜索设备"
+          prefixIcon={<SearchIcon />}
+          size="small"
+          style={{ width: 140 }}
+          value={keyword}
+          onChange={(value) => setKeyword(value)}
+        />
+        <Tag variant="light-outline">已选 {selected.size} 台</Tag>
+        <Tag variant="light-outline">
+          共 {visible.length} 台 · 预览 {previewSerials.size}/{previewLimit}
+        </Tag>
 
-        <Space size="small">
-          <Input
-            placeholder="192.168.1.10:5555"
-            size="small"
-            style={{ width: 150 }}
-            value={address}
-            onChange={(value) => setAddress(value)}
-          />
-          <Button
-            icon={<LinkIcon />}
-            loading={connecting}
-            size="small"
-            variant="outline"
-            onClick={() => void connect()}
-          >
-            连接设备
-          </Button>
-          <Button
-            icon={<RefreshIcon />}
-            loading={status === 'loading'}
-            size="small"
-            variant="outline"
-            onClick={() => void refresh()}
-          >
-            刷新
-          </Button>
-        </Space>
+        <Input
+          placeholder="192.168.1.10:5555"
+          size="small"
+          style={{ width: 150 }}
+          value={address}
+          onChange={(value) => setAddress(value)}
+        />
+        <Button
+          icon={<LinkIcon />}
+          loading={connecting}
+          size="small"
+          variant="outline"
+          onClick={() => void connect()}
+        >
+          连接设备
+        </Button>
+        <Button
+          icon={<RefreshIcon />}
+          loading={status === 'loading'}
+          size="small"
+          variant="outline"
+          onClick={() => void refresh()}
+        >
+          刷新
+        </Button>
       </div>
 
       <BatchToolbar
         api={api}
         selected={selectedSerials}
         onClear={() => setSelected(new Set())}
+        onDeviceListStale={() => void refresh()}
         onMirrorWall={(serials) => {
           // 投屏墙 = 每台设备各开一个独立投屏窗口，不做单窗口多宫格
           for (const serial of serials) void openDeviceWindow(serial, 'mirror');
@@ -203,6 +245,7 @@ export function DevicesPage({
             key={device.serial}
             checked={selected.has(device.serial)}
             device={device}
+            group={groupOf(device.serial)}
             preview={
               <DevicePreview
                 api={api}
@@ -213,9 +256,80 @@ export function DevicesPage({
             railMore={<DeviceMoreMenu api={api} device={device} />}
             onAction={handleAction}
             onCheckedChange={toggleSelected}
+            onSelect={(serial) => setAssignTarget({ serial, current: groupOf(serial) })}
           />
         ))}
       </div>
+
+      <Dialog
+        attach="body"
+        cancelBtn="取消"
+        confirmBtn="确定"
+        header={`设置分组 · ${assignTarget?.serial ?? ''}`}
+        visible={assignTarget !== null}
+        onCancel={() => {
+          setAssignTarget(null);
+          setNewGroupName('');
+        }}
+        onClose={() => {
+          setAssignTarget(null);
+          setNewGroupName('');
+        }}
+        onConfirm={() => {
+          if (!assignTarget) return;
+          const name = newGroupName.trim();
+          if (name) createAndAssign(assignTarget.serial, name);
+          setAssignTarget(null);
+          setNewGroupName('');
+        }}
+      >
+        <div className="ac-group">
+          <Space breakLine size="small">
+            <Button
+              size="small"
+              theme={assignTarget?.current === UNGROUPED ? 'primary' : 'default'}
+              variant="outline"
+              onClick={() => applyAssign(UNGROUPED)}
+            >
+              {UNGROUPED}
+            </Button>
+            {groups.names.map((name) => (
+              <Button
+                key={name}
+                size="small"
+                theme={assignTarget?.current === name ? 'primary' : 'default'}
+                variant="outline"
+                onClick={() => applyAssign(name)}
+              >
+                {name}
+              </Button>
+            ))}
+          </Space>
+          <Input
+            placeholder="新建分组名称"
+            value={newGroupName}
+            onChange={(value) => setNewGroupName(String(value))}
+          />
+          {groups.names.length > 0 ? (
+            <div className="ac-group__remove">
+              <span className="ac-group__hint">删除分组后，组内设备会回到「{UNGROUPED}」。</span>
+              <Space breakLine size="small">
+                {groups.names.map((name) => (
+                  <Button
+                    key={name}
+                    size="small"
+                    theme="danger"
+                    variant="text"
+                    onClick={() => deleteGroup(name)}
+                  >
+                    删除「{name}」
+                  </Button>
+                ))}
+              </Space>
+            </div>
+          ) : null}
+        </div>
+      </Dialog>
     </>
   );
 }

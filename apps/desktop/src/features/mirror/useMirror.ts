@@ -8,7 +8,7 @@ import type {
 } from '@ac/ipc-contract';
 import { VideoStreamDecoder, clientPointToDevice, decodeBase64 } from '@ac/scrcpy-web';
 import type { Api } from '../../ipc';
-import { toMessage } from '../../ipc';
+import { toCode, toMessage } from '../../ipc';
 
 /**
  * 会话占用优先级。
@@ -18,7 +18,7 @@ import { toMessage } from '../../ipc';
  */
 export const PREVIEW_PRIORITY = 0;
 export const MIRROR_PRIORITY = 10;
-export type MirrorStatus = 'idle' | 'starting' | 'streaming' | 'stopped' | 'error';
+export type MirrorStatus = 'idle' | 'starting' | 'streaming' | 'stopped' | 'busy' | 'error';
 
 export interface MirrorState {
   info: SessionInfo | null;
@@ -145,6 +145,13 @@ export function useMirror(
 
       setStatus('streaming');
     } catch (cause) {
+      // device_busy 不是故障：这台设备正被更高优先级的会话占用（例如投屏窗口）。
+      // 单列一个状态，调用方可以据此退避重试，而不是弹一个红色错误。
+      if (toCode(cause) === 'device_busy') {
+        setStatus('busy');
+        setError(null);
+        return;
+      }
       setStatus('error');
       setError(toMessage(cause, '启动投屏失败'));
     }

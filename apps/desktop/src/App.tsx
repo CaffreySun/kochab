@@ -1,13 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loading } from 'tdesign-react';
 import { AppShell, type ShellView } from './app/AppShell';
 import type { Api } from './ipc';
-import { useApi, useDevices } from './features/devices/useDevices';
+import { useApi, useDevices, type DevicesState } from './features/devices/useDevices';
 import { openDeviceWindow } from './features/window/openDeviceWindow';
 import { DeviceWorkspacePage } from './pages/DeviceWorkspacePage';
 import { DevicesPage, DEFAULT_PREVIEW_LIMIT } from './pages/DevicesPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { TasksPage } from './pages/TasksPage';
+import { TasksProvider, useTasks } from './features/tasks/TasksProvider';
 import { parseWindowRoute } from './windowMode';
+import {
+  MirrorOptionsContext,
+  readMirrorOptions,
+  writeMirrorOptions,
+  type MirrorOptions,
+} from './features/settings/mirrorOptions';
 
 export interface AppProps {
   /**
@@ -18,7 +26,7 @@ export interface AppProps {
 }
 
 /** 主窗口右侧内容区显示什么。 */
-type ShellRoute = { kind: 'devices' } | { kind: 'settings' };
+type ShellRoute = { kind: 'devices' } | { kind: 'tasks' } | { kind: 'settings' };
 
 export function App({ api: injected }: AppProps = {}) {
   const autoApi = useApi();
@@ -34,6 +42,20 @@ export function App({ api: injected }: AppProps = {}) {
   const [shellRoute, setShellRoute] = useState<ShellRoute>({ kind: 'devices' });
   const [previewEnabled, setPreviewEnabled] = useState(true);
   const [previewLimit, setPreviewLimit] = useState(DEFAULT_PREVIEW_LIMIT);
+  // 投屏参数存在 localStorage：投屏窗口是独立 webview，靠它跨窗口共享设置。
+  const [mirrorOptions, setMirrorOptions] = useState<MirrorOptions>(() => readMirrorOptions());
+
+  const updateMirrorOptions = useCallback((next: MirrorOptions) => {
+    setMirrorOptions(next);
+    writeMirrorOptions(next);
+  }, []);
+
+  // 另一个窗口改了设置时（例如设备窗口里没改，但设置页可能重开）同步过来。
+  useEffect(() => {
+    const onStorage = () => setMirrorOptions(readMirrorOptions());
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const currentDevice = useMemo(
     () =>
@@ -51,30 +73,80 @@ export function App({ api: injected }: AppProps = {}) {
 
   if (route.kind === 'device') {
     return (
-      <DeviceWorkspacePage
-        api={api}
-        device={currentDevice}
-        tab={route.tab}
-        onTabChange={(tab) => {
-          if (route.serial !== currentDevice?.serial) return;
-          // 独立窗口之间不共享路由：换标签就是开另一个窗口
-          void openDeviceWindow(route.serial, tab);
-        }}
-      />
+      <MirrorOptionsContext.Provider value={mirrorOptions}>
+        <DeviceWorkspacePage
+          api={api}
+          device={currentDevice}
+          tab={route.tab}
+          onTabChange={(tab) => {
+            if (route.serial !== currentDevice?.serial) return;
+            // 独立窗口之间不共享路由：换标签就是开另一个窗口
+            void openDeviceWindow(route.serial, tab);
+          }}
+        />
+      </MirrorOptionsContext.Provider>
     );
   }
 
-  const shellView: ShellView = shellRoute.kind === 'settings' ? 'settings' : 'devices';
+  return (
+    <TasksProvider>
+      <ShellContent
+        api={api}
+        deviceState={deviceState}
+        mirrorOptions={mirrorOptions}
+        previewEnabled={previewEnabled}
+        previewLimit={previewLimit}
+        route={shellRoute}
+        setPreviewEnabled={setPreviewEnabled}
+        setPreviewLimit={setPreviewLimit}
+        setShellRoute={setShellRoute}
+        updateMirrorOptions={updateMirrorOptions}
+      />
+    </TasksProvider>
+  );
+}
+
+interface ShellContentProps {
+  api: Api;
+  deviceState: DevicesState;
+  mirrorOptions: MirrorOptions;
+  previewEnabled: boolean;
+  previewLimit: number;
+  route: ShellRoute;
+  updateMirrorOptions: (options: MirrorOptions) => void;
+  setPreviewEnabled: (enabled: boolean) => void;
+  setPreviewLimit: (limit: number) => void;
+  setShellRoute: (route: ShellRoute) => void;
+}
+
+/** 主窗口内容。任务队列必须读同一个 Provider，所以单独拆一个组件。 */
+function ShellContent({
+  api,
+  deviceState,
+  mirrorOptions,
+  previewEnabled,
+  previewLimit,
+  route,
+  updateMirrorOptions,
+  setPreviewEnabled,
+  setPreviewLimit,
+  setShellRoute,
+}: ShellContentProps) {
+  const { tasks } = useTasks();
+  const running = tasks.filter((task) => task.status === 'running').length;
+  const shellView: ShellView = route.kind;
+  const title = route.kind === 'settings' ? '设置' : route.kind === 'tasks' ? '任务' : '设备';
 
   return (
     <AppShell
       active={shellView}
-      title={shellRoute.kind === 'settings' ? '设置' : '设备'}
+      runningCount={running}
+      title={title}
       onChange={(view) =>
-        setShellRoute(view === 'settings' ? { kind: 'settings' } : { kind: 'devices' })
+        setShellRoute(view === 'settings' ? { kind: 'settings' } : { kind: view })
       }
     >
-      {shellRoute.kind === 'devices' ? (
+      {route.kind === 'devices' ? (
         <DevicesPage
           api={api}
           devices={deviceState}
@@ -83,11 +155,15 @@ export function App({ api: injected }: AppProps = {}) {
         />
       ) : null}
 
-      {shellRoute.kind === 'settings' ? (
+      {route.kind === 'tasks' ? <TasksPage /> : null}
+
+      {route.kind === 'settings' ? (
         <SettingsPage
           api={api}
+          mirrorOptions={mirrorOptions}
           previewEnabled={previewEnabled}
           previewLimit={previewLimit}
+          onMirrorOptionsChange={updateMirrorOptions}
           onPreviewEnabledChange={setPreviewEnabled}
           onPreviewLimitChange={setPreviewLimit}
         />
