@@ -64,96 +64,121 @@
 
 /* ------------------------------------------------------------------ *
  * 设备卡片
+ *
+ * 结构：头部（勾选·传输方式·序列号·状态）/ 主体（缩略图 + 竖排操作栏）/ 页脚
  * ------------------------------------------------------------------ */
 
 .ac-device-card {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-md);
-  padding: var(--ac-space-md);
+  overflow: hidden;
   background: var(--ac-bg-container);
   border: 1px solid var(--ac-border-color);
-  border-radius: var(--ac-radius-md);
-  box-shadow: var(--ac-shadow-card);
-  transition:
-    border-color var(--ac-transition-base),
-    box-shadow var(--ac-transition-base),
-    transform var(--ac-transition-base);
+  border-radius: 8px;
 }
 
 .ac-device-card:hover {
-  border-color: var(--ac-brand);
-  transform: translateY(-1px);
+  border-color: var(--td-brand-color);
 }
 
-.ac-device-card.ac-device-card--selected {
-  border-color: var(--ac-brand);
-  box-shadow: 0 0 0 2px var(--ac-brand-light);
-}
-
-.ac-device-card.ac-device-card--offline {
-  opacity: 0.6;
-}
-
-.ac-device-card.ac-device-card--offline:hover {
-  transform: none;
-  border-color: var(--ac-border-color);
+.ac-device-card--offline {
+  opacity: 0.72;
 }
 
 .ac-device-card__header {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--ac-space-xs);
   align-items: center;
-  justify-content: space-between;
+  padding: var(--ac-space-sm);
+  border-bottom: 1px solid var(--ac-border-color);
+}
+
+.ac-device-card__transport {
+  display: inline-flex;
+  color: var(--ac-text-placeholder);
 }
 
 .ac-device-card__identity {
-  display: flex;
-  gap: var(--ac-space-sm);
-  align-items: center;
+  flex: 1;
+  min-width: 0;
   padding: 0;
+  overflow: hidden;
   color: inherit;
-  font: inherit;
+  font-size: 13px;
   text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: none;
   border: 0;
-  border-radius: var(--ac-radius-sm);
   cursor: pointer;
 }
 
 .ac-device-card__identity:focus-visible {
-  outline: 2px solid var(--ac-brand);
+  outline: 2px solid var(--td-brand-color);
   outline-offset: 2px;
 }
 
-.ac-device-card__title {
-  color: var(--ac-text-primary);
-  font-size: 15px;
-  font-weight: 500;
+.ac-device-card__body {
+  display: flex;
+  gap: var(--ac-space-xs);
+  padding: var(--ac-space-sm);
+}
+
+.ac-device-card__preview {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  background: #101114;
+  border-radius: 6px;
+}
+
+.ac-device-card__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ac-device-card__rail-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--ac-text-secondary);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ac-device-card__rail-button:hover:not(:disabled) {
+  color: var(--td-brand-color);
+  background: var(--ac-bg-hover);
+  border-color: var(--ac-border-color);
+}
+
+.ac-device-card__rail-button:disabled {
+  color: var(--td-text-color-disabled);
+  cursor: not-allowed;
+}
+
+.ac-device-card__footer {
+  display: flex;
+  gap: var(--ac-space-xs);
+  align-items: center;
+  padding: var(--ac-space-sm);
+  border-top: 1px solid var(--ac-border-color);
 }
 
 .ac-device-card__meta {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--ac-space-sm);
-  margin: 0;
-}
-
-.ac-device-card__meta dt {
+  flex: 1;
+  overflow: hidden;
   color: var(--ac-text-placeholder);
   font-size: 12px;
-}
-
-.ac-device-card__meta dd {
-  margin: 2px 0 0;
-  overflow: hidden;
-  color: var(--ac-text-primary);
-  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.ac-device-card__actions {
-  display: flex;
-  gap: var(--ac-space-sm);
 }

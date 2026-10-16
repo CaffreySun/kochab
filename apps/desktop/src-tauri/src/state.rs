@@ -4,6 +4,7 @@
 //! 与 `scrcpy-session` 中。
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
@@ -17,12 +18,18 @@ use tokio::sync::watch;
 /// 挂在 Tauri 上的应用状态。
 #[derive(Clone)]
 pub struct AppState {
-    /// 命令用连接。所有设备操作共用，内部有互斥锁串行化。
+    /// 命令用连接。本身不持有 socket（adb 连接是一次性的），
+    /// 可以自由克隆并发使用，多设备操作互不阻塞。
     pub adb: AdbClient,
     /// 设备详情缓存，避免每次打开页面都重新 getprop。
     pub devices: Arc<RwLock<HashMap<String, DeviceInfo>>>,
     /// 活跃的投屏会话。
     pub sessions: Arc<Mutex<HashMap<u32, Arc<SessionHandle>>>>,
+    /// 应用自带资源的目录（打包后是资源目录）。
+    ///
+    /// `scrcpy-server` 随应用分发，位置与 adb 安装目录无关，
+    /// 因此必须显式告诉领域层去哪里找，不能靠「和 adb 装在一起」猜。
+    pub resource_dir: Option<PathBuf>,
 }
 
 /// 一条活跃会话在命令层需要的东西。
@@ -40,6 +47,10 @@ pub struct SessionHandle {
     /// `select`，`Notify` 可能错过在它开始等待之前发出的通知。
     stop_tx: watch::Sender<bool>,
     stop_rx: watch::Receiver<bool>,
+    /// 前端逻辑会话名，见 `SessionHandle::new`
+    owner: String,
+    /// 占用优先级，见 `SessionHandle::new`
+    priority: u8,
 }
 
 /// 会话运行计数。用原子量是因为广播任务写、命令层读，两边都不该等锁。
@@ -53,9 +64,21 @@ pub struct SessionCounters {
 }
 
 impl SessionHandle {
-    pub fn new(info: SessionInfo, control: ControlSender, session: Arc<ScrcpySession>) -> Self {
+    /// `owner` 是前端的逻辑会话名（如 `preview-d4535f72` / `mirror-d4535f72`）。
+    ///
+    /// `info.session_id` 只是本进程自增的数值 id，前端并不持有它，
+    /// 因此判断「是不是同一个消费方又来启动」必须靠这个字符串。
+    pub fn new(
+        owner: String,
+        priority: u8,
+        info: SessionInfo,
+        control: ControlSender,
+        session: Arc<ScrcpySession>,
+    ) -> Self {
         let (stop_tx, stop_rx) = watch::channel(false);
         Self {
+            owner,
+            priority,
             info,
             control,
             session,
@@ -63,6 +86,16 @@ impl SessionHandle {
             stop_tx,
             stop_rx,
         }
+    }
+
+    /// 前端逻辑会话名。
+    pub fn owner(&self) -> &str {
+        &self.owner
+    }
+
+    /// 本会话的占用优先级。
+    pub fn priority(&self) -> u8 {
+        self.priority
     }
 
     /// 请求停止。广播任务会在下一轮 `select` 里看到并走去收尾。
@@ -81,12 +114,18 @@ impl SessionHandle {
 }
 
 impl AppState {
-    pub fn new(adb: AdbClient) -> Self {
+    pub fn new(adb: AdbClient, resource_dir: Option<PathBuf>) -> Self {
         Self {
             adb,
             devices: Arc::new(RwLock::new(HashMap::new())),
             sessions: Arc::new(Mutex::new(HashMap::new())),
+            resource_dir,
         }
+    }
+
+    /// 交给 ndroid-core 的额外搜索目录（自带资源优先）。
+    pub fn resource_dirs(&self) -> Vec<PathBuf> {
+        self.resource_dir.iter().cloned().collect()
     }
 
     /// 读缓存。

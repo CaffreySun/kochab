@@ -16,15 +16,34 @@ pub const ENV_SCRCPY_SERVER: &str = "SCRCPY_SERVER_PATH";
 ///
 /// 查找顺序（与 `scripts/doctor.mjs` 保持一致）：
 /// 1. 环境变量 `SCRCPY_SERVER_PATH`
-/// 2. `adb` 可执行文件所在目录（Windows 同目录；macOS 可能在其 `../Resources`）
-/// 3. 可执行文件本体的兄弟目录（`vendor/scrcpy-server`）
+/// 2. `extra_dirs`（应用自带的资源目录等）
+/// 3. `adb` 可执行文件所在目录（Windows 同目录；macOS 可能在其 `../Resources`）
 ///
 /// 找不到返回 `None`——这是正常的降级路径，不是错误。
 pub fn resolve_scrcpy_server(adb_path: Option<&Path>) -> Option<PathBuf> {
+    resolve_scrcpy_server_with(&[], adb_path)
+}
+
+/// 与 [`resolve_scrcpy_server`] 相同，但额外搜索 `extra_dirs`。
+///
+/// 打包后的应用把 server 作为资源放在自己的资源目录里，那个目录
+/// 与 adb 的安装位置毫无关系，必须由调用方显式传进来。
+pub fn resolve_scrcpy_server_with(
+    extra_dirs: &[PathBuf],
+    adb_path: Option<&Path>,
+) -> Option<PathBuf> {
     if let Some(explicit) = std::env::var_os(ENV_SCRCPY_SERVER) {
         let path = PathBuf::from(explicit);
         if path.is_file() {
             return Some(path);
+        }
+    }
+
+    // 自带资源排在 adb 同目录之前：前者是随应用一起验证过的版本，
+    // 后者版本未知，可能触发服务端版本不匹配。
+    for dir in extra_dirs {
+        if let Some(found) = first_server_file(dir) {
+            return Some(found);
         }
     }
 
@@ -68,6 +87,11 @@ fn first_server_file(dir: &Path) -> Option<PathBuf> {
 
 /// 组装工具链自检结果。
 pub async fn diagnose(client: Option<&AdbClient>) -> ToolchainStatus {
+    diagnose_with(&[], client).await
+}
+
+/// 与 [`diagnose`] 相同，但把 `extra_dirs` 交给 server 定位。
+pub async fn diagnose_with(extra_dirs: &[PathBuf], client: Option<&AdbClient>) -> ToolchainStatus {
     let mut problems: Vec<String> = Vec::new();
 
     let (adb_version, reachable) = match client {
@@ -87,7 +111,7 @@ pub async fn diagnose(client: Option<&AdbClient>) -> ToolchainStatus {
         }
     };
 
-    let scrcpy_server_path = resolve_scrcpy_server(None);
+    let scrcpy_server_path = resolve_scrcpy_server_with(extra_dirs, None);
     if scrcpy_server_path.is_none() {
         problems.push(
             "未找到 scrcpy server 文件，投屏功能不可用。安装 scrcpy，或设置 SCRCPY_SERVER_PATH 指向该文件。"

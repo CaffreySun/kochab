@@ -116,6 +116,16 @@ export interface SessionStartOptions {
   control?: boolean;
   showTouches?: boolean;
   stayAwake?: boolean;
+  /**
+   * 会话优先级，数值越大越优先。
+   *
+   * 同一台设备同时只能有一条 scrcpy 会话，所以多个消费方（卡片缩略图、
+   * 独立投屏窗口）会争抢。只有**优先级不低于**当前占用者的请求才能接管，
+   * 否则缩略图会把正在用的投屏窗口顶掉，来回抢占导致两边都闪黑。
+   *
+   * 约定：卡片缩略图 `PREVIEW_PRIORITY`，交互式投屏 `MIRROR_PRIORITY`。
+   */
+  priority?: number;
 }
 
 /** 触摸动作，与 Rust 侧 `TouchActionPayload` 一致 */

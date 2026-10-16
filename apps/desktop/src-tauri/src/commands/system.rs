@@ -29,7 +29,7 @@ pub fn app_info() -> CommandResult<AppSelfInfo> {
 #[tauri::command]
 pub async fn toolchain_diagnostics(app: AppHandle) -> CommandResult<ToolchainStatus> {
     let st = state(&app);
-    Ok(android_core::toolchain::diagnose(Some(&st.adb)).await)
+    Ok(android_core::toolchain::diagnose_with(&st.resource_dirs(), Some(&st.adb)).await)
 }
 
 /// 执行一条任意 shell 命令（供高级用户排障使用）。

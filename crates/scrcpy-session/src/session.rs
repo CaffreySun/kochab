@@ -41,6 +41,74 @@ pub fn remote_server_path(scid: u32) -> String {
     format!("/data/local/tmp/scrcpy-server-{scid:08x}.jar")
 }
 
+/// 设备端 jar 的通配删除模式，用于清理裸进程残留。
+pub const REMOTE_JAR_GLOB: &str = "/data/local/tmp/scrcpy-server-*.jar";
+
+/// 上次异常退出留下的残留统计。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StaleCleanupReport {
+    /// 被移除的反向隧道条数
+    pub removed_tunnels: usize,
+    /// 是否清理了设备端 jar
+    pub removed_jars: bool,
+}
+
+/// 清理上次**异常退出**留下的设备端残留。
+///
+/// 会话被正常停止时会自己收尾；但进程被杀 / 崩溃 / 断电时不会，
+/// 于是 `adb reverse` 隧道和设备端 jar 一直留在设备上。
+/// 我们每次启动都换新 scid，残留不会被复用，只会越积越多。
+///
+/// 只动我们自己创建的东西：`localabstract:scrcpy_*` 隧道与
+/// [`REMOTE_JAR_GLOB`]，绝不扩大范围误删用户资源。
+pub async fn clean_stale_resources(client: &AdbClient, serial: &str) -> StaleCleanupReport {
+    let mut report = StaleCleanupReport::default();
+
+    let tunnels = match client.list_reverse(serial).await {
+        Ok(list) => list,
+        Err(e) => {
+            tracing::debug!(serial = %serial, error = %e, "列举反向隧道失败，跳过清理");
+            return report;
+        }
+    };
+
+    for line in tunnels {
+        // 形如 `UsbFfs localabstract:scrcpy_118260e9 tcp:62212`
+        let Some(remote) = line
+            .split_whitespace()
+            .find(|token| token.starts_with("localabstract:"))
+        else {
+            continue;
+        };
+        if !remote.starts_with("localabstract:scrcpy_") {
+            continue;
+        }
+        match client.remove_reverse(serial, remote).await {
+            Ok(()) => {
+                report.removed_tunnels += 1;
+                tracing::debug!(serial = %serial, %remote, "清理残留反向隧道");
+            }
+            Err(e) => tracing::debug!(serial = %serial, %remote, error = %e, "清理反向隧道失败"),
+        }
+    }
+
+    // jar 按通配删；一条命令发不完会被 shell 截断，这里只删一次并接受部分失败
+    match client
+        .shell(serial, &format!("rm -f {REMOTE_JAR_GLOB}"))
+        .await
+    {
+        Ok(out) if out.success() => report.removed_jars = true,
+        Ok(out) => tracing::debug!(serial = %serial, exit = out.exit_code, "清理设备端 jar 失败"),
+        Err(e) => tracing::debug!(serial = %serial, error = %e, "清理设备端 jar 失败"),
+    }
+
+    if report.removed_tunnels > 0 || report.removed_jars {
+        tracing::info!(serial = %serial, ?report, "已清理上次异常退出的残留");
+    }
+    report
+}
+
 /// `Streamer.writeVideoHeader()` 写出的 codec id 长度。
 const CODEC_ID_LENGTH: usize = 4;
 

@@ -11,7 +11,7 @@
 //! Tauri 事件负载走 JSON，`Vec<u8>` 会被序列化成数字数组（约 4 倍膨胀），
 //! base64 只有 1.33 倍，且前端一次 `atob` 就能拿回字节。
 
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use base64::Engine as _;
@@ -27,6 +27,9 @@ const EVENTS_META: &str = "session://meta";
 const EVENTS_VIDEO: &str = "session://video";
 const EVENTS_STATS: &str = "session://stats";
 const EVENTS_CLOSED: &str = "session://closed";
+
+/// 会话代次计数器，保证每次启动拿到互不相同的 scid。
+static SESSION_GENERATION: AtomicU64 = AtomicU64::new(1);
 
 /// 统计事件的发送间隔。
 const STATS_INTERVAL: std::time::Duration = std::time::Duration::from_secs(1);
@@ -82,6 +85,8 @@ pub struct SessionStartOptions {
     pub control: Option<bool>,
     pub show_touches: Option<bool>,
     pub stay_awake: Option<bool>,
+    /// 占用优先级，越大越优先；同值允许互相接管
+    pub priority: Option<u8>,
 }
 
 impl SessionStartOptions {
@@ -141,9 +146,41 @@ pub async fn session_start(
 ) -> CommandResult<scrcpy_session::SessionInfo> {
     let st = state(&app);
 
+    // 优先级先算出来：接管判据要用。
+    let priority = options.as_ref().and_then(|o| o.priority).unwrap_or(0);
+
+    // 同一台设备同时只能有一条 scrcpy 会话（设备端 abstract socket 是独占的）。
+    //
+    // 同一个 sessionId 重复调用必须幂等（React 严格模式下 effect 会跑两次）；
+    // 但换一个 sessionId 说明换了消费方（例如从设备列表缩略图切到独立投屏窗口），
+    // 这时必须接管而不是复用：
+    //
+    // 复用会把**旧会话的参数**（分辨率/帧率仍是缩略图那一档）返回给新消费方，
+    // 而且 SPS/PPS 只在会话建立时下发一次，后来者永远收不到 config 包，
+    // 解码器配置不出来 -> 画面全黑。所以显式让旧会话退位。
     if let Some(existing) = st.session_of(&serial) {
-        tracing::debug!(serial = %serial, "该设备已有活跃会话，直接复用");
-        return Ok(existing.info.clone());
+        if existing.owner() == session_id {
+            tracing::debug!(serial = %serial, session_id = %session_id, "同一会话重复启动，复用");
+            return Ok(existing.info.clone());
+        }
+        // 优先级低于当前占用者时**不接管**，否则缩略图与投屏窗口会来回抢占。
+        if priority < existing.priority() {
+            return Err(CommandError::new(
+                "device_busy",
+                format!(
+                    "设备 {serial} 正被占用（{}），请先关闭那个窗口",
+                    existing.owner()
+                ),
+            ));
+        }
+        tracing::info!(
+            serial = %serial,
+            old_session_id = existing.info.session_id,
+            new_session_id = %session_id,
+            "接管该设备上的已有会话"
+        );
+        st.take_session(existing.info.session_id);
+        existing.mark_stopped();
     }
 
     if session_id.trim().is_empty() {
@@ -163,18 +200,40 @@ pub async fn session_start(
         ));
     }
 
-    let server_jar = android_core::toolchain::resolve_scrcpy_server(None).ok_or_else(|| {
-        CommandError::new(
-            "toolchain_missing",
-            "找不到 scrcpy-server，请先运行 pnpm bootstrap 或检查安装",
-        )
-    })?;
+    let server_jar = android_core::toolchain::resolve_scrcpy_server_with(&st.resource_dirs(), None)
+        .ok_or_else(|| {
+            CommandError::new(
+                "toolchain_missing",
+                "找不到 scrcpy-server，请先运行 pnpm bootstrap 或检查安装",
+            )
+        })?;
 
     let factory = scrcpy_session::SessionFactory::new(st.adb.clone(), server_jar);
     let session_options = options.unwrap_or_default().into_session_options();
-    let mut session = factory
-        .start(&session_id, &serial, &session_options)
-        .await?;
+
+    // 每次启动都换一个新的 scid。
+    //
+    // scid 同时决定设备端的 abstract socket 名与 jar 文件名，而**收尾是异步的**：
+    // `session_stop` 之后旧会话仍在删 jar、撤隧道。若重启沿用同一个 scid，
+    // 旧会话的清理就会把新会话的设备端文件与隧道一并拆掉。
+    // 换 scid 之后每次会话只碰自己的资源，重启无需等待旧会话收尾。
+    let generation = SESSION_GENERATION.fetch_add(1, Ordering::Relaxed);
+    let unique_id = format!("{session_id}#{generation}");
+
+    let mut session = match factory.start(&unique_id, &serial, &session_options).await {
+        Ok(session) => session,
+        Err(e) => {
+            // 失败必须留痕：否则前端只有一个「预览失败」，排查时完全瞎
+            tracing::warn!(
+                serial = %serial,
+                unique_id = %unique_id,
+                args = %args_preview(&session_options),
+                error = %e,
+                "投屏会话建立失败"
+            );
+            return Err(CommandError::from(e));
+        }
+    };
 
     let info = session.info().clone();
     let control = session.control_sender();
@@ -185,6 +244,8 @@ pub async fn session_start(
     let session = Arc::new(session);
 
     let handle = Arc::new(SessionHandle::new(
+        session_id.clone(),
+        priority,
         info.clone(),
         control,
         Arc::clone(&session),
@@ -293,6 +354,14 @@ pub async fn session_scroll(
         .scroll(x, y, h_scroll, v_scroll, screen)
         .await
         .map_err(Into::into)
+}
+
+/// 把会话参数渲染成一行，便于日志里直接看到「用了什么参数失败」。
+fn args_preview(options: &SessionOptions) -> String {
+    format!(
+        "max_size={} max_fps={} bit_rate={} control={}",
+        options.max_size, options.max_fps, options.bit_rate, options.control
+    )
 }
 
 /// 取会话句柄。
@@ -461,6 +530,7 @@ mod tests {
             control: Some(false),
             show_touches: Some(false),
             stay_awake: Some(false),
+            priority: Some(10),
         }
         .into_session_options();
 

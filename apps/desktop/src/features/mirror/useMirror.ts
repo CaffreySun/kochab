@@ -10,6 +10,14 @@ import { VideoStreamDecoder, clientPointToDevice, decodeBase64 } from '@ac/scrcp
 import type { Api } from '../../ipc';
 import { toMessage } from '../../ipc';
 
+/**
+ * 会话占用优先级。
+ *
+ * 同一台设备同时只能有一条 scrcpy 会话，缩略图与投屏窗口必然争抢。
+ * 交互式投屏必须高于缩略图：否则缩略图重新挂载时会把用户正在看的投屏顶掉。
+ */
+export const PREVIEW_PRIORITY = 0;
+export const MIRROR_PRIORITY = 10;
 export type MirrorStatus = 'idle' | 'starting' | 'streaming' | 'stopped' | 'error';
 
 export interface MirrorState {
@@ -38,6 +46,19 @@ export function useMirror(
   serial: string | null,
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
   options: SessionStartOptions = {},
+  /**
+   * 会话归属名。同一个设备同时只能有一条 scrcpy 会话，Rust 侧据此判断
+   * 「是同一个消费方重复启动（幂等复用）」还是「换了消费方（接管旧会话）」。
+   *
+   * 因此缩略图与投屏磁贴必须用不同的名字：它们是彼此独立的消费方，
+   * 用同一个名字会让后端把缩略图那档低清参数直接复用给投屏窗口。
+   */
+  owner = 'mirror',
+  /**
+   * 占用优先级，必须与 `PREVIEW_PRIORITY` / `MIRROR_PRIORITY` 保持一致。
+   * 低优先级的请求不能抢占高优先级的会话，否则缩略图会把投屏窗口顶掉。
+   */
+  priority = MIRROR_PRIORITY,
 ): MirrorState {
   const [info, setInfo] = useState<SessionInfo | null>(null);
   const [stats, setStats] = useState<SessionStats | null>(null);
@@ -49,6 +70,8 @@ export function useMirror(
   const infoRef = useRef<SessionInfo | null>(null);
   const apiRef = useRef<Api | null>(null);
   const optionsRef = useRef<SessionStartOptions>(options);
+  const ownerRef = useRef<string>(owner);
+  const priorityRef = useRef<number>(priority);
 
   useEffect(() => {
     infoRef.current = info;
@@ -61,6 +84,14 @@ export function useMirror(
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
+
+  useEffect(() => {
+    ownerRef.current = owner;
+  }, [owner]);
+
+  useEffect(() => {
+    priorityRef.current = priority;
+  }, [priority]);
 
   const teardown = useCallback(() => {
     decoderRef.current?.close();
@@ -97,7 +128,10 @@ export function useMirror(
     teardown();
 
     try {
-      const session = await client.startSession(serial, `mirror-${serial}`, optionsRef.current);
+      const session = await client.startSession(serial, `${ownerRef.current}-${serial}`, {
+        ...optionsRef.current,
+        priority: priorityRef.current,
+      });
       infoRef.current = session;
       setInfo(session);
 

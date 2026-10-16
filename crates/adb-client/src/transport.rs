@@ -59,6 +59,17 @@ pub trait Transport: Send + Sync + Debug {
 #[async_trait]
 pub trait TransportFactory: Send + Sync + Debug {
     async fn connect(&self) -> io::Result<Box<dyn Transport>>;
+
+    /// 打开一条**推送**连接：读取不施加超时。
+    ///
+    /// `host:track-devices` 这类服务在没有事件时本就该一直阻塞；
+    /// 给它套上读超时，连接会被自己的超时反复踢断（表现为每 30 秒
+    /// 重连一次，期间还漏掉设备变化）。
+    ///
+    /// 默认实现退化为 [`connect`](Self::connect)，测试替身因此不必实现它。
+    async fn connect_push(&self) -> io::Result<Box<dyn Transport>> {
+        self.connect().await
+    }
 }
 
 /// 真实的 TCP 传输。
@@ -66,13 +77,20 @@ pub trait TransportFactory: Send + Sync + Debug {
 pub struct TcpTransport {
     stream: TcpStream,
     addr: SocketAddr,
-    timeout: Duration,
+    /// 单次读写的超时；`None` 表示不施加超时（推送类连接）。
+    timeout: Option<Duration>,
 }
 
 impl TcpTransport {
     /// 覆盖单次读写的超时时间。
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
+        self.timeout = Some(timeout);
+        self
+    }
+
+    /// 关掉读超时，用于推送类连接。
+    pub fn without_timeout(mut self) -> Self {
+        self.timeout = None;
         self
     }
 }
@@ -96,11 +114,8 @@ impl TcpFactory {
         self.timeout = timeout;
         self
     }
-}
 
-#[async_trait]
-impl TransportFactory for TcpFactory {
-    async fn connect(&self) -> io::Result<Box<dyn Transport>> {
+    async fn open(&self, timeout: Option<Duration>) -> io::Result<Box<dyn Transport>> {
         let stream = tokio::time::timeout(DEFAULT_TIMEOUT, TcpStream::connect(self.addr))
             .await
             .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "连接 adb server 超时"))??;
@@ -111,18 +126,45 @@ impl TransportFactory for TcpFactory {
         Ok(Box::new(TcpTransport {
             stream,
             addr: self.addr,
-            timeout: self.timeout,
+            timeout,
         }))
+    }
+}
+
+#[async_trait]
+impl TransportFactory for TcpFactory {
+    async fn connect(&self) -> io::Result<Box<dyn Transport>> {
+        self.open(Some(self.timeout)).await
+    }
+
+    async fn connect_push(&self) -> io::Result<Box<dyn Transport>> {
+        self.open(None).await
+    }
+}
+
+/// 按需给 future 套上超时；`None` 时不施加任何期限。
+async fn guarded<T>(
+    timeout: Option<Duration>,
+    message: &'static str,
+    fut: impl std::future::Future<Output = io::Result<T>>,
+) -> io::Result<T> {
+    match timeout {
+        Some(limit) => tokio::time::timeout(limit, fut)
+            .await
+            .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, message))?,
+        None => fut.await,
     }
 }
 
 #[async_trait]
 impl Transport for TcpTransport {
     async fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-        let fut = AsyncWriteExt::write_all(&mut self.stream, buf);
-        tokio::time::timeout(self.timeout, fut)
-            .await
-            .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "写入 adb server 超时"))?
+        let timeout = self.timeout;
+        let stream = &mut self.stream;
+        guarded(timeout, "写入 adb server 超时", async move {
+            AsyncWriteExt::write_all(stream, buf).await
+        })
+        .await
     }
 
     async fn flush(&mut self) -> io::Result<()> {
@@ -130,19 +172,22 @@ impl Transport for TcpTransport {
     }
 
     async fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
-        // tokio 1.53 起 `AsyncReadExt::read_exact` 返回读取字节数，这里丢弃该值
-        let fut = AsyncReadExt::read_exact(&mut self.stream, buf);
-        let _read = tokio::time::timeout(self.timeout, fut)
-            .await
-            .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "读取 adb server 超时"))??;
-        Ok(())
+        let timeout = self.timeout;
+        let stream = &mut self.stream;
+        guarded(timeout, "读取 adb server 超时", async move {
+            // tokio 1.53 起 `read_exact` 返回读取字节数，这里丢弃该值
+            AsyncReadExt::read_exact(stream, buf).await.map(|_| ())
+        })
+        .await
     }
 
     async fn read_some(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let fut = AsyncReadExt::read(&mut self.stream, buf);
-        tokio::time::timeout(self.timeout, fut)
-            .await
-            .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "读取 adb server 超时"))?
+        let timeout = self.timeout;
+        let stream = &mut self.stream;
+        guarded(timeout, "读取 adb server 超时", async move {
+            AsyncReadExt::read(stream, buf).await
+        })
+        .await
     }
 
     async fn shutdown(&mut self) -> io::Result<()> {

@@ -149,6 +149,18 @@ async fn 真机_停止会话后端口被回收() {
 }
 
 #[tokio::test]
+async fn 真机_清理异常退出残留可幂等执行() {
+    let serial = require_device!();
+
+    let first = scrcpy_session::clean_stale_resources(&client(), &serial).await;
+    // 没有活跃会话时顶多只有历史残留，数量应当很小
+    assert!(first.removed_tunnels <= 8, "清理数量异常：{first:?}");
+
+    let second = scrcpy_session::clean_stale_resources(&client(), &serial).await;
+    assert_eq!(second.removed_tunnels, 0, "第二次应当没有新残留可清");
+}
+
+#[tokio::test]
 async fn 真机_同一会话_id_可重复启动() {
     let serial = require_device!();
 

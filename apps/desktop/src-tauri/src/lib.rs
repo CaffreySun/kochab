@@ -11,7 +11,7 @@ mod watcher;
 
 use adb_client::AdbClient;
 use state::AppState;
-use tauri::Manager;
+use tauri::{AppHandle, Manager};
 
 pub use error::{CommandError, CommandResult};
 
@@ -35,8 +35,19 @@ pub fn run() {
                 .unwrap_or_else(|e| panic!("默认 adb 端点无法解析：{e}"));
             tracing::info!(endpoint = adb.endpoint(), "adb 客户端就绪（惰性连接）");
 
-            app.manage(AppState::new(adb));
+            // scrcpy-server 随应用分发，落在资源目录里。
+            // 领域层不依赖 Tauri，所以由这里把路径问出来再传下去。
+            let resource_dir = app.path().resource_dir().ok();
+            match &resource_dir {
+                Some(dir) => tracing::info!(dir = %dir.display(), "资源目录"),
+                None => tracing::warn!(
+                    "无法解析资源目录，scrcpy-server 只能靠 adb 同目录或 SCRCPY_SERVER_PATH"
+                ),
+            }
+
+            app.manage(AppState::new(adb, resource_dir));
             watcher::spawn(handle);
+            spawn_stale_cleanup(app.handle().clone());
 
             tracing::info!(
                 version = app.package_info().version.to_string(),
@@ -47,6 +58,32 @@ pub fn run() {
         .invoke_handler(crate::invoke_handler!())
         .run(tauri::generate_context!())
         .expect("Tauri 应用启动失败");
+}
+
+/// 启动时清理上次异常退出留下的设备端残留。
+///
+/// 正常停止会话时 `ScrcpySession::stop` 会自己撤隧道、删 jar，
+/// 但进程被杀 / 崩溃时不会——残留会随每次启动越积越多。
+/// 这一步只做一次、且**不阻塞**界面启动，失败也只记日志。
+fn spawn_stale_cleanup(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let st = app.state::<AppState>();
+
+        let entries = match st.adb.devices().await {
+            Ok(entries) => entries,
+            Err(e) => {
+                tracing::debug!(error = %e, "启动清理：读取设备列表失败");
+                return;
+            }
+        };
+
+        for entry in entries {
+            if entry.state != adb_client::DeviceState::Device {
+                continue;
+            }
+            scrcpy_session::clean_stale_resources(&st.adb, &entry.serial).await;
+        }
+    });
 }
 
 #[cfg(test)]

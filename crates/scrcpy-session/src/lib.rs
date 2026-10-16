@@ -10,8 +10,9 @@ pub mod session;
 
 pub use error::{Result, SessionError};
 pub use session::{
-    device_socket, read_video_packet, remote_server_path, scid_from, ControlSender, ScrcpySession,
-    SessionFactory, SessionInfo, SessionOptions,
+    clean_stale_resources, device_socket, read_video_packet, remote_server_path, scid_from,
+    ControlSender, ScrcpySession, SessionFactory, SessionInfo, SessionOptions, StaleCleanupReport,
+    REMOTE_JAR_GLOB,
 };
 
 pub use scrcpy_protocol::{Codec, VideoPacket};

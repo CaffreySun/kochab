@@ -132,6 +132,7 @@ impl Transport for MockTransport {
 pub struct MockFactory {
     transport: Mutex<Option<Box<dyn Transport>>>,
     connects: AtomicUsize,
+    push_connects: AtomicUsize,
 }
 
 impl MockFactory {
@@ -139,6 +140,7 @@ impl MockFactory {
         Self {
             transport: Mutex::new(Some(transport)),
             connects: AtomicUsize::new(0),
+            push_connects: AtomicUsize::new(0),
         }
     }
 
@@ -146,12 +148,27 @@ impl MockFactory {
     pub fn connects(&self) -> usize {
         self.connects.load(Ordering::Relaxed)
     }
+
+    /// 其中有几条是**推送**连接（读取不应有超时）。
+    pub fn push_connects(&self) -> usize {
+        self.push_connects.load(Ordering::Relaxed)
+    }
 }
 
 #[async_trait]
 impl TransportFactory for MockFactory {
     async fn connect(&self) -> io::Result<Box<dyn Transport>> {
         self.connects.fetch_add(1, Ordering::Relaxed);
+        self.transport
+            .lock()
+            .expect("传输锁被毒化")
+            .take()
+            .ok_or_else(|| io::Error::other("Mock 传输已用尽；每次操作都必须新建连接"))
+    }
+
+    async fn connect_push(&self) -> io::Result<Box<dyn Transport>> {
+        self.connects.fetch_add(1, Ordering::Relaxed);
+        self.push_connects.fetch_add(1, Ordering::Relaxed);
         self.transport
             .lock()
             .expect("传输锁被毒化")

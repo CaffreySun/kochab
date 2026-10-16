@@ -5,8 +5,18 @@ import { COMMANDS, type DeviceInfo } from '@ac/ipc-contract';
 import { createApi } from '../ipc';
 import { createMockTransport } from '../ipc/mock';
 import { AppsPage } from './AppsPage';
+import { DevicesPage } from './DevicesPage';
+import { DeviceWorkspacePage } from './DeviceWorkspacePage';
+import { useDevices } from '../features/devices/useDevices';
 import { FilesPage } from './FilesPage';
-import { MirrorPage } from './MirrorPage';
+import { MirrorTile } from '../features/mirror/MirrorTile';
+import { MIRROR_PRIORITY, PREVIEW_PRIORITY } from '../features/mirror/useMirror';
+import { openDeviceWindow } from '../features/window/openDeviceWindow';
+
+// 独立窗口靠 Tauri 的 WebviewWindow 创建；单测只关心「点了按钮开哪个窗口」。
+vi.mock('../features/window/openDeviceWindow', () => ({
+  openDeviceWindow: vi.fn().mockResolvedValue(undefined),
+}));
 
 const READY_DEVICE: DeviceInfo = {
   serial: 'd4535f72',
@@ -157,67 +167,188 @@ describe('FilesPage', () => {
   });
 });
 
-describe('MirrorPage', () => {
-  it('开始投屏后进入投屏中状态', async () => {
+describe('DevicesPage（多设备）', () => {
+  const second = { ...READY_DEVICE, serial: 'emulator-5554', model: 'Pixel 7' };
+
+  /** DevicesPage 的设备数据由上层传入，测试里用真实 hook 的薄包装提供。 */
+  function DevicesPageHarness(props: Omit<React.ComponentProps<typeof DevicesPage>, 'devices'>) {
+    const devices = useDevices(props.api);
+    return <DevicesPage {...props} devices={devices} />;
+  }
+
+  function renderPage(overrides: Record<string, unknown> = {}, limit = 4) {
+    const { api, onInvoke } = setup(overrides);
+    render(<DevicesPageHarness previewEnabled api={api} previewLimit={limit} />);
+    return { api, onInvoke };
+  }
+
+  it('为每台设备渲染一张卡片', async () => {
+    renderPage({ device_list: [READY_DEVICE, second] });
+    expect(await screen.findAllByTestId('device-card')).toHaveLength(2);
+  });
+
+  it('卡片操作栏为每台设备各开一个独立窗口', async () => {
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE, second] });
+
+    const cards = await screen.findAllByTestId('device-card');
+    await user.click(within(cards[1]!).getByRole('button', { name: '文件' }));
+
+    expect(openDeviceWindow).toHaveBeenCalledWith('emulator-5554', 'files');
+  });
+
+  it('不同标签各自独立：投屏与应用不会复用同一个窗口', async () => {
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE] });
+
+    const card = (await screen.findAllByTestId('device-card'))[0]!;
+    await user.click(within(card).getByRole('button', { name: '投屏' }));
+    await user.click(within(card).getByRole('button', { name: '应用' }));
+
+    expect(openDeviceWindow).toHaveBeenNthCalledWith(1, 'd4535f72', 'mirror');
+    expect(openDeviceWindow).toHaveBeenNthCalledWith(2, 'd4535f72', 'apps');
+  });
+
+  it('勾选设备后出现批量操作条', async () => {
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE, second] });
+
+    expect(screen.queryByText('取消选择')).not.toBeInTheDocument();
+
+    const cards = await screen.findAllByTestId('device-card');
+    await user.click(within(cards[0]!).getByRole('checkbox'));
+
+    expect(await screen.findByText('取消选择')).toBeInTheDocument();
+  });
+
+  it('缩略图与投屏窗口使用不同的会话名，避免抢同一台设备时互相复用', async () => {
+    const { api, onInvoke } = setup({ device_list: [READY_DEVICE] });
+    render(<DevicesPageHarness previewEnabled api={api} previewLimit={4} />);
+
+    await screen.findByTestId('preview-canvas');
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(
+        COMMANDS.sessionStart,
+        expect.objectContaining({ sessionId: 'preview-d4535f72' }),
+      );
+    });
+
+    // 投屏磁贴必须用另一个名字：Rust 侧靠它区分「同一消费方」与「换人了」
+    const startPayloads = onInvoke.mock.calls
+      .filter((call: unknown[]) => call[0] === COMMANDS.sessionStart)
+      .map((call: unknown[]) => (call[1] as { sessionId?: string } | undefined)?.sessionId);
+    expect(startPayloads.length).toBeGreaterThan(0);
+    expect(startPayloads).not.toContain('mirror-d4535f72');
+    // 缩略图优先级必须低于投屏，否则会反向抢占
+    expect(PREVIEW_PRIORITY).toBeLessThan(MIRROR_PRIORITY);
+  });
+
+  it('预览并发受上限约束：超出的设备显示关闭占位', async () => {
+    renderPage({ device_list: [READY_DEVICE, second] }, 1);
+
+    expect(await screen.findAllByTestId('device-card')).toHaveLength(2);
+    // 上限为 1，因此只有一台拿到 canvas
+    await waitFor(() => {
+      expect(screen.getAllByTestId('preview-canvas')).toHaveLength(1);
+    });
+    expect(screen.getAllByText('预览已关闭')).toHaveLength(1);
+  });
+
+  it('关闭预览开关后全部显示占位且不建立会话', async () => {
+    const { api, onInvoke } = setup({ device_list: [READY_DEVICE] });
+    render(<DevicesPageHarness api={api} previewEnabled={false} previewLimit={4} />);
+
+    expect(await screen.findByText('预览已关闭')).toBeInTheDocument();
+    expect(onInvoke).not.toHaveBeenCalledWith(COMMANDS.sessionStart, expect.anything());
+  });
+
+  it('关键字过滤设备', async () => {
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE, second] });
+    await screen.findAllByTestId('device-card');
+
+    await user.type(screen.getByPlaceholderText('搜索设备'), 'pixel');
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('device-card')).toHaveLength(1);
+    });
+  });
+
+  it('勾选设备会累计到批量作用域', async () => {
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE, second] });
+
+    const cards = await screen.findAllByTestId('device-card');
+    await user.click(within(cards[0]!).getByRole('checkbox'));
+
+    expect(screen.getByText('已选 1 台')).toBeInTheDocument();
+  });
+});
+
+describe('MirrorTile', () => {
+  it('开始投屏后进入投屏中状态并展示分辨率', async () => {
     const { api } = setup();
     const user = userEvent.setup();
-    render(<MirrorPage api={api} device={READY_DEVICE} />);
+    render(<MirrorTile api={api} device={READY_DEVICE} />);
 
     await user.click(screen.getByRole('button', { name: '开始投屏' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('mirror-status')).toHaveTextContent('投屏中');
     });
-    // 会话协商出来的分辨率会展示出来
     expect(screen.getByText(/540×1080/)).toBeInTheDocument();
   });
 
-  it('开始投屏会带设备序列号调用 session_start', async () => {
+  it('未开始投屏时按键不会下发 session_key', async () => {
     const { api, onInvoke } = setup();
     const user = userEvent.setup();
-    render(<MirrorPage api={api} device={READY_DEVICE} />);
+    render(<MirrorTile api={api} device={READY_DEVICE} />);
 
-    await user.click(screen.getByRole('button', { name: '开始投屏' }));
+    // TDesign 的 disabled 按钮会渲染成不可交互元素，直接断言「点了也没发命令」
+    await user.click(screen.getByText('返回'));
 
-    await waitFor(() => {
-      expect(onInvoke).toHaveBeenCalledWith(
-        COMMANDS.sessionStart,
-        expect.objectContaining({ serial: 'd4535f72' }),
-      );
-    });
+    expect(onInvoke).not.toHaveBeenCalledWith(COMMANDS.sessionKey, expect.anything());
+  });
+});
+
+describe('DeviceWorkspacePage', () => {
+  it('独立窗口自带设备标识与三个标签页', () => {
+    const { api } = setup();
+    render(
+      <DeviceWorkspacePage api={api} device={READY_DEVICE} tab="apps" onTabChange={vi.fn()} />,
+    );
+
+    // 窗口内必须自报家门：多开时全靠这一行分辨是哪台设备
+    const header = screen.getByText('Xiaomi MIX 2S').closest('header');
+    expect(header).not.toBeNull();
+    expect(within(header!).getByText('d4535f72')).toBeInTheDocument();
+
+    // TDesign 的 Tabs 不带 ARIA role，只能按导航区作用域断言文案
+    const nav = document.querySelector('.t-tabs__nav');
+    expect(nav).not.toBeNull();
+    for (const label of ['投屏', '应用', '文件']) {
+      expect(within(nav as HTMLElement).getByText(label)).toBeInTheDocument();
+    }
   });
 
-  it('控制按钮会下发按键，抬起与按下成对', async () => {
-    const { api, onInvoke } = setup();
+  it('切换标签把意图交回给调用方去开另一个窗口', async () => {
+    const onTabChange = vi.fn();
+    const { api } = setup();
     const user = userEvent.setup();
-    render(<MirrorPage api={api} device={READY_DEVICE} />);
+    render(
+      <DeviceWorkspacePage api={api} device={READY_DEVICE} tab="apps" onTabChange={onTabChange} />,
+    );
 
-    await user.click(screen.getByRole('button', { name: '开始投屏' }));
-    await waitFor(() => expect(screen.getByTestId('mirror-status')).toHaveTextContent('投屏中'));
+    const nav = document.querySelector('.t-tabs__nav') as HTMLElement;
+    await user.click(within(nav).getByText('文件'));
 
-    await user.click(screen.getByRole('button', { name: '返回' }));
-
-    await waitFor(() => {
-      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.sessionKey, {
-        sessionId: expect.any(Number) as number,
-        keycode: 4,
-        pressed: true,
-      });
-    });
+    expect(onTabChange).toHaveBeenCalledWith('files');
   });
 
-  it('未选设备时展示空态', () => {
+  it('设备消失时给出提示而不是崩溃', () => {
     const { api } = setup();
-    render(<MirrorPage api={api} device={null} />);
+    render(<DeviceWorkspacePage api={api} device={null} tab="apps" onTabChange={vi.fn()} />);
 
-    expect(screen.getByText('没有选中的设备')).toBeInTheDocument();
-  });
-
-  it('设备未就绪时给出明确原因', () => {
-    const { api } = setup();
-    render(<MirrorPage api={api} device={OFFLINE_DEVICE} />);
-
-    expect(screen.getByText('设备未就绪')).toBeInTheDocument();
-    expect(screen.getByText(/unauthorized/)).toBeInTheDocument();
+    expect(screen.getByText('设备未连接')).toBeInTheDocument();
   });
 });

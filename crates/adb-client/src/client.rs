@@ -108,7 +108,21 @@ impl AdbClient {
 
     /// 开一条新连接。
     async fn open(&self) -> Result<Box<dyn Transport>> {
-        self.factory.connect().await.map_err(|e| {
+        self.open_with_mode(false).await
+    }
+
+    /// 打开一条推送连接（读取不施加超时）。
+    async fn open_push(&self) -> Result<Box<dyn Transport>> {
+        self.open_with_mode(true).await
+    }
+
+    async fn open_with_mode(&self, push: bool) -> Result<Box<dyn Transport>> {
+        let attempt = if push {
+            self.factory.connect_push().await
+        } else {
+            self.factory.connect().await
+        };
+        attempt.map_err(|e| {
             debug!(endpoint = %self.endpoint, error = %e, "建立 adb 连接失败");
             AdbError::ServerUnreachable {
                 endpoint: format!("{}（{e}）", self.endpoint),
@@ -198,7 +212,9 @@ impl AdbClient {
     ///
     /// 该服务返回 `OKAY` 后**持续**推送变更，因此 [`DeviceTracker`] 独占一条连接。
     pub async fn track_devices(&self) -> Result<DeviceTracker> {
-        let mut t = self.open().await?;
+        // 推送连接必须用 `open_push`：普通连接带读超时，
+        // 没有设备变化时会把这条长连接反复踢断。
+        let mut t = self.open_push().await?;
         codec::send_request(t.as_mut(), "host:track-devices").await?;
         codec::read_status(t.as_mut()).await?;
         Ok(DeviceTracker { transport: t })
@@ -640,6 +656,27 @@ mod tests {
         assert!(client.devices().await.is_ok());
         assert!(client.devices().await.is_err(), "连接不应被复用");
         assert_eq!(factory.connects(), 2);
+    }
+
+    #[tokio::test]
+    async fn 设备追踪使用推送连接() {
+        // 推送连接不能带读超时：`host:track-devices` 在没有设备变化时
+        // 本该一直阻塞，套上超时会让这条长连接每 30 秒被自己踢断一次。
+        let factory = Arc::new(MockFactory::new(Box::new(MockTransport::okay_with(b""))));
+        let client = AdbClient::with_factory(factory.clone());
+
+        assert!(client.track_devices().await.is_ok());
+        assert_eq!(factory.connects(), 1);
+        assert_eq!(factory.push_connects(), 1, "track_devices 必须走推送连接");
+    }
+
+    #[tokio::test]
+    async fn 普通操作不使用推送连接() {
+        let factory = Arc::new(MockFactory::new(Box::new(MockTransport::okay_with(b""))));
+        let client = AdbClient::with_factory(factory.clone());
+
+        assert!(client.devices().await.is_ok());
+        assert_eq!(factory.push_connects(), 0);
     }
 
     #[tokio::test]

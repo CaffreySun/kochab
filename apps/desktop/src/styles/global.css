@@ -11,81 +11,261 @@ body {
 }
 
 #root {
-  min-height: 100vh;
+  height: 100vh;
 }
 
+/* 启动占位：API 还没就绪时的兜底 */
 .ac-app {
   display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
 }
 
-.ac-app__header {
+/* ------------------------------------------------------------------ *
+ * 应用外壳：左侧导航 + 右侧内容
+ * ------------------------------------------------------------------ */
+
+.ac-shell {
   display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.ac-shell__sidebar {
+  display: flex;
+  flex: 0 0 76px;
+  flex-direction: column;
+  gap: var(--ac-space-md);
+  align-items: center;
+  padding: var(--ac-space-md) 0;
+  background: var(--ac-bg-container);
+  border-right: 1px solid var(--ac-border-color);
+}
+
+.ac-shell__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+/* 图标自带 1024×1024 的固有尺寸，这里必须显式约束，否则会撑满布局 */
+.ac-shell__logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.ac-shell__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-xs);
+  width: 100%;
+}
+
+.ac-shell__nav-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+  color: var(--ac-text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.ac-shell__nav-item:hover {
+  color: var(--ac-text-primary);
+  background: var(--ac-bg-hover);
+}
+
+.ac-shell__nav-item--active {
+  color: var(--td-brand-color);
+  background: var(--ac-bg-hover);
+}
+
+.ac-shell__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ac-shell__header {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--ac-space-md);
   align-items: center;
   justify-content: space-between;
   padding: var(--ac-space-md) var(--ac-space-lg);
-  background: var(--ac-bg-container);
   border-bottom: 1px solid var(--ac-border-color);
 }
 
-.ac-app__brand {
-  display: flex;
-  gap: var(--ac-space-sm);
-  align-items: baseline;
-}
-
-.ac-app__title {
+.ac-shell__title {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
 }
 
-.ac-app__subtitle {
-  color: var(--ac-text-placeholder);
-  font-size: 12px;
-}
-
-.ac-app__main {
-  flex: 1;
-  padding: var(--ac-space-lg);
-}
-
-.ac-app__toolbar {
+.ac-shell__toolbar {
   display: flex;
   gap: var(--ac-space-sm);
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--ac-space-md);
 }
 
-.ac-app__count {
+.ac-shell__body {
+  flex: 1;
+  padding: var(--ac-space-lg);
+  overflow: auto;
+}
+
+/* ------------------------------------------------------------------ *
+ * 批量操作条
+ * ------------------------------------------------------------------ */
+
+.ac-batch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm) var(--ac-space-md);
+  align-items: center;
+  padding: var(--ac-space-sm) var(--ac-space-md);
+  margin-bottom: var(--ac-space-md);
+  border-radius: var(--ac-radius-md);
+  background: var(--ac-bg-page);
+}
+
+.ac-batch > * {
+  flex: none;
+}
+
+.ac-batch__result {
+  margin: 0;
+  color: var(--ac-text-secondary);
+}
+
+/* ------------------------------------------------------------------ *
+ * 设备独立窗口
+ *
+ * 独立窗口没有左侧导航，内容区要自己撑满并自报家门，
+ * 否则多开几个窗口时无法分辨自己在看哪台设备。
+ * ------------------------------------------------------------------ */
+
+.ac-device-window {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-md);
+  box-sizing: border-box;
+  height: 100vh;
+  padding: var(--ac-space-lg);
+  overflow: auto;
+}
+
+.ac-device-window__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  align-items: baseline;
+  flex: none;
+}
+
+.ac-device-window__header strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ac-device-window__header span {
   color: var(--ac-text-secondary);
   font-size: 13px;
 }
 
-\.ac-device-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--ac-space-md);
+/* 投屏磁贴在独立窗口里可以吃掉剩余高度，不必再靠外层撑开 */
+.ac-device-window .ac-mirror-tile {
+  flex: 1;
+  min-height: 0;
+}
+
+.ac-device-window .ac-page {
+  flex: 1;
+  min-height: 0;
 }
 
 /* ------------------------------------------------------------------ *
- * 导航与页面骨架
+ * 设备列表
  * ------------------------------------------------------------------ */
 
-.ac-app__nav {
-  flex: 1;
-  padding: 0 var(--ac-space-lg) var(--ac-space-lg);
-  background: var(--ac-bg-page);
+/* 工具栏：允许换行并各自收缩。
+   不要用 space-between——两侧合计宽度超过容器时，右侧会被挤出可视区而不是换行。 */
+.ac-devices__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  align-items: center;
+  margin-bottom: var(--ac-space-md);
 }
+
+.ac-devices__toolbar > * {
+  flex: none;
+}
+
+.ac-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--ac-space-md);
+  align-items: start;
+}
+
+/* ------------------------------------------------------------------ *
+ * 缩略图
+ * ------------------------------------------------------------------ */
+
+.ac-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.ac-preview__canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* 缩略图舞台底色是 #101114，占位文案必须用亮色才看得清。
+   深色底上用 --ac-text-placeholder 会几乎不可见。 */
+.ac-preview__placeholder {
+  color: #b6bcc6;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 8%);
+  text-align: center;
+}
+
+.ac-preview__error {
+  position: absolute;
+  bottom: 4px;
+  color: var(--td-error-color);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 应用 / 文件页（设备工作区内复用）
+ * ------------------------------------------------------------------ */
 
 .ac-page {
   display: flex;
   flex-direction: column;
   gap: var(--ac-space-md);
-  padding-top: var(--ac-space-md);
 }
 
 .ac-page__toolbar {
@@ -93,6 +273,10 @@ body {
   flex-wrap: wrap;
   gap: var(--ac-space-sm);
   align-items: center;
+}
+
+.ac-page__toolbar > * {
+  flex: none;
 }
 
 .ac-page__inline-switch {
@@ -103,7 +287,6 @@ body {
   font-size: 13px;
 }
 
-/* 应用列表里的「名称 + 包名」两行单元格 */
 .ac-app-cell {
   display: flex;
   flex-direction: column;
@@ -119,7 +302,6 @@ body {
   font-size: 12px;
 }
 
-/* 文件列表里可点击的条目 */
 .ac-files__breadcrumb {
   margin-bottom: var(--ac-space-xs);
 }
@@ -139,45 +321,147 @@ body {
 }
 
 /* ------------------------------------------------------------------ *
- * 投屏
+ * 投屏磁贴
  * ------------------------------------------------------------------ */
 
-.ac-mirror {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ac-space-md);
-  padding-top: var(--ac-space-md);
-}
-
-.ac-mirror__toolbar,
-.ac-mirror__controls {
+.ac-mirror-tile {
   display: flex;
   flex-direction: column;
   gap: var(--ac-space-sm);
+  padding: var(--ac-space-sm);
+  background: var(--ac-bg-container);
+  border: 1px solid var(--ac-border-color);
+  border-radius: 8px;
 }
 
-.ac-mirror__stage {
+/* 放大：样式层面全屏，画布仍是同一个节点，无需在组件间搬运 */
+.ac-mirror-tile--expanded {
+  position: fixed;
+  inset: 3vh 4vw;
+  z-index: 100;
+  overflow: auto;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 30%);
+}
+
+.ac-mirror-tile__header {
+  display: flex;
+  gap: var(--ac-space-sm);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ac-mirror-tile__title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-mirror-tile__stage {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 320px;
-  padding: var(--ac-space-md);
+  padding: var(--ac-space-sm);
   background: #101114;
-  border: 1px solid var(--ac-border-color);
   border-radius: 6px;
 }
 
-.ac-mirror__canvas {
+.ac-mirror-tile__canvas {
   max-width: 100%;
-  max-height: 70vh;
-  background: #000;
-
-  /* 触摸坐标要按元素实际尺寸换算，因此不能拉伸变形 */
+  max-height: 68vh;
   object-fit: contain;
   touch-action: none;
 }
 
-.ac-mirror__hint {
+.ac-mirror-tile__hint {
+  position: absolute;
   color: var(--ac-text-placeholder);
   font-size: 13px;
+}
+
+.ac-mirror-tile__error {
+  margin: 0;
+  color: var(--td-error-color);
+  font-size: 12px;
+}
+
+.ac-mirror-tile__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-sm);
+  align-items: flex-start;
+}
+
+/* ------------------------------------------------------------------ *
+ * 设备工作区
+ * ------------------------------------------------------------------ */
+
+.ac-workspace__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  align-items: center;
+  margin-bottom: var(--ac-space-sm);
+}
+
+.ac-workspace__bar > * {
+  flex: none;
+}
+
+.ac-workspace__title {
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ *
+ * 设置
+ * ------------------------------------------------------------------ */
+
+.ac-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-lg);
+  max-width: 760px;
+}
+
+.ac-settings__heading {
+  margin: 0 0 var(--ac-space-xs);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ac-settings__hint {
+  margin: 0 0 var(--ac-space-sm);
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+.ac-settings__diagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-xs);
+  margin: var(--ac-space-sm) 0 0;
+}
+
+.ac-settings__diagnostics > div {
+  display: flex;
+  gap: var(--ac-space-sm);
+}
+
+.ac-settings__diagnostics dt {
+  flex: 0 0 110px;
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+.ac-settings__diagnostics dd {
+  min-width: 0;
+  margin: 0;
+  word-break: break-all;
+}
+
+.ac-settings__problems {
+  margin: 0;
+  padding-left: 1.2em;
 }
