@@ -75,6 +75,15 @@ Rust 侧不强制数值门槛，但 `cargo clippy -- -D warnings` 与 `cargo tes
 - 测试名称写成行为描述：`「设备未就绪时禁用所有动作」`，而不是 `「renders correctly」`。
 - 每个组件至少覆盖：正常态、空态、错误态、禁用态。
 
+**已知的例外**：TDesign 的 `Switch` 不输出 `aria-checked`，因此
+`getByRole('switch', { checked: true })` 永远匹配不到——断言开关状态只能用
+`.t-switch` + `t-is-checked` 这类 class 判据（见 `pages.test.tsx` 的 `SettingsPage` 用例）。
+这是组件库的无障碍缺口，不是可以靠改写测试绕开的问题。
+
+TDesign 组件的**按钮文案随语言包变化**，对话框/弹层的确认按钮不要用
+`getByRole('button', { name: '确定' })` 去猜：由调用方显式传 `confirmBtn` / `cancelBtn`
+（`DevicesPage` 的分组对话框即如此），测试才能稳定按 `role` 查询。
+
 ### 真机测试
 
 - 只做**只读或可回滚**的操作（列举、读取、截图、启动后再 force-stop）。

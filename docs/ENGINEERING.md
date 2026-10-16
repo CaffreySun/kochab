@@ -154,3 +154,21 @@ chore(harness): 升级 ESLint 到 9.x
 - [ ] 是否有真机相关的行为未被 `pnpm test:device` 覆盖？
 - [ ] 跨平台：是否用到了 `/` 拼接路径、硬编码换行、平台专有 API？
 - [ ] `pnpm verify` 是否全绿？
+
+## 11. 组件库（TDesign）踩过的坑
+
+这几条都**不是**能靠类型检查挡住的，改动相关代码前先看一眼。
+
+- **`Form.FormItem` 会克隆直接子元素并注入 `value` / `onChange`**，把子控件上显式写的
+  `value` 覆盖成表单域里的值。表单没有 `data` 时那个值就是 `undefined`，
+  于是控件渲染成空白/关闭，而且**不报错、不警告**。
+  受控控件必须套一层普通元素（本项目用 `<div>`），让 FormItem 去绑那一层。
+  回归测试见 `pages.test.tsx` 的 `SettingsPage` 用例。
+- **`Popup` 没有触发元素时无法定位**：不传触发子元素、只用 `visible` 受控挂载时，
+  弹层会被丢到窗口左上角（而不是跟着调用方）。要么给它一个引用子元素，
+  要么直接用 `Dialog`——`Dialog` 挂在 `body` 上居中显示，不受祖先
+  `overflow: hidden` 影响。`更多 → 命令行` 就是这么做的。
+- **`Switch` 不写 `aria-checked`**：Visual 上开了/关了都对，但 UI Automation 读到的
+  `ToggleState` 永远是 `Off`；而 `InputNumber` 的 UIA `ValuePattern.SetValue`
+  也只改 DOM、不触发 React 的 `onChange`。**用 UIA 做交互验证时不要拿这两样当判据**：
+  开关状态看截图，输入改值要用真实鼠标点击输入框 + 键盘输入。
