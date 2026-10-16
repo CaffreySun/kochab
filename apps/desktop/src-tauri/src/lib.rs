@@ -55,9 +55,37 @@ pub fn run() {
             );
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                stop_window_sessions(window.app_handle().clone(), window.label().to_string());
+            }
+        })
         .invoke_handler(crate::invoke_handler!())
         .run(tauri::generate_context!())
         .expect("Tauri 应用启动失败");
+}
+
+/// 窗口销毁时兜底停掉它发起的投屏会话。
+///
+/// 前端在正常卸载路径上也会 `session_stop`，但窗口被直接关闭时 React 的清理函数
+/// 不保证执行，设备端 scrcpy 进程与反向隧道就会残留——其他消费方（例如设备列表
+/// 缩略图）再想连这台设备就只会一直拿到 `device_busy`。
+///
+/// 这里立刻把会话从注册表摘掉再发停止信号，是为了让缩略图的重试尽快拿到设备；
+/// 真正的收尾（删 jar、撤隧道）由广播任务在收到停止信号后异步完成，每次启动都用
+/// 新的 scid，所以新旧会话的清理不会互相踩到。
+fn stop_window_sessions(app: AppHandle, window_label: String) {
+    let st = app.state::<AppState>();
+    for handle in st.sessions_for_window(&window_label) {
+        st.remove_session(handle.info.session_id);
+        handle.mark_stopped();
+        tracing::info!(
+            window = %window_label,
+            session_id = handle.info.session_id,
+            owner = handle.owner(),
+            "窗口销毁，停止其投屏会话"
+        );
+    }
 }
 
 /// 启动时清理上次异常退出留下的设备端残留。

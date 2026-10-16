@@ -51,6 +51,11 @@ pub struct SessionHandle {
     owner: String,
     /// 占用优先级，见 `SessionHandle::new`
     priority: u8,
+    /// 发起会话的 Tauri 窗口 label。
+    ///
+    /// 窗口被销毁时前端未必有机会跑 React 的清理函数，所以必须由后端按窗口兜底，
+    /// 否则设备端 scrcpy 进程与反向隧道会一直留着，后来者永远 `device_busy`。
+    window_label: String,
 }
 
 /// 会话运行计数。用原子量是因为广播任务写、命令层读，两边都不该等锁。
@@ -71,6 +76,7 @@ impl SessionHandle {
     pub fn new(
         owner: String,
         priority: u8,
+        window_label: String,
         info: SessionInfo,
         control: ControlSender,
         session: Arc<ScrcpySession>,
@@ -79,6 +85,7 @@ impl SessionHandle {
         Self {
             owner,
             priority,
+            window_label,
             info,
             control,
             session,
@@ -91,6 +98,11 @@ impl SessionHandle {
     /// 前端逻辑会话名。
     pub fn owner(&self) -> &str {
         &self.owner
+    }
+
+    /// 发起会话的窗口 label。
+    pub fn window_label(&self) -> &str {
+        &self.window_label
     }
 
     /// 本会话的占用优先级。
@@ -155,6 +167,18 @@ impl AppState {
             .values()
             .find(|s| s.info.serial == serial)
             .cloned()
+    }
+
+    /// 取某个窗口发起的所有会话。
+    ///
+    /// 窗口销毁时用它来兜底收尾——前端在窗口关闭路径上不一定能跑到清理函数。
+    pub fn sessions_for_window(&self, window_label: &str) -> Vec<Arc<SessionHandle>> {
+        self.sessions
+            .lock()
+            .values()
+            .filter(|s| s.window_label() == window_label)
+            .cloned()
+            .collect()
     }
 
     /// 登记会话。

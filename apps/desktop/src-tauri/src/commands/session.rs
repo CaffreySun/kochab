@@ -17,7 +17,7 @@ use std::sync::Arc;
 use base64::Engine as _;
 use scrcpy_session::SessionOptions;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, WebviewWindow};
 
 use crate::error::{CommandError, CommandResult};
 use crate::state::{state, SessionHandle};
@@ -140,6 +140,7 @@ impl From<TouchActionPayload> for scrcpy_protocol::TouchAction {
 #[tauri::command]
 pub async fn session_start(
     app: AppHandle,
+    window: WebviewWindow,
     serial: String,
     session_id: String,
     options: Option<SessionStartOptions>,
@@ -246,6 +247,7 @@ pub async fn session_start(
     let handle = Arc::new(SessionHandle::new(
         session_id.clone(),
         priority,
+        window.label().to_string(),
         info.clone(),
         control,
         Arc::clone(&session),
