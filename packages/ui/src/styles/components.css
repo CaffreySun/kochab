@@ -130,7 +130,10 @@
   align-items: center;
   justify-content: center;
   min-height: 0;
-  aspect-ratio: 9 / 16;
+
+  /* 固定高度而不是 9:16：竖屏画面靠 object-fit: contain 居中留白，
+     卡片高度因此与设备分辨率无关，一屏能多放几台设备。 */
+  height: 150px;
   overflow: hidden;
   background: #101114;
   border-radius: 6px;
