@@ -3,9 +3,9 @@ import { Loading } from 'tdesign-react';
 import { AppShell, type ShellView } from './app/AppShell';
 import type { Api } from './ipc';
 import { useApi, useDevices, type DevicesState } from './features/devices/useDevices';
-import { openDeviceWindow } from './features/window/openDeviceWindow';
+import { DEVICE_TAB_EVENT, type DeviceTabRequest } from './features/window/openDeviceWindow';
 import { DeviceWorkspacePage } from './pages/DeviceWorkspacePage';
-import { DevicesPage, DEFAULT_PREVIEW_LIMIT } from './pages/DevicesPage';
+import { DevicesPage, DEFAULT_PREVIEW_LIMIT, type WorkspaceTab } from './pages/DevicesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TasksPage } from './pages/TasksPage';
 import { TasksProvider, useTasks } from './features/tasks/TasksProvider';
@@ -57,6 +57,28 @@ export function App({ api: injected }: AppProps = {}) {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
+  // 设备窗口只有一个，标签在窗口内切换：URL 上的 tab 只是**初始值**，
+  // 之后由用户在窗口内改，或由主窗口通过 DEVICE_TAB_EVENT 指定。
+  const [deviceTab, setDeviceTab] = useState<WorkspaceTab>(
+    route.kind === 'device' ? route.tab : 'mirror',
+  );
+
+  useEffect(() => {
+    if (route.kind !== 'device') return;
+    // 浏览器预览 / 单测里没有窗口间事件，直接跳过。
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+
+    let unlisten: (() => void) | undefined;
+    void import('@tauri-apps/api/event')
+      .then(({ listen }) =>
+        listen<DeviceTabRequest>(DEVICE_TAB_EVENT, (event) => setDeviceTab(event.payload.tab)),
+      )
+      .then((fn) => {
+        unlisten = fn;
+      });
+    return () => unlisten?.();
+  }, [route]);
+
   const currentDevice = useMemo(
     () =>
       route.kind === 'device' ? (devices.find((d) => d.serial === route.serial) ?? null) : null,
@@ -77,12 +99,8 @@ export function App({ api: injected }: AppProps = {}) {
         <DeviceWorkspacePage
           api={api}
           device={currentDevice}
-          tab={route.tab}
-          onTabChange={(tab) => {
-            if (route.serial !== currentDevice?.serial) return;
-            // 独立窗口之间不共享路由：换标签就是开另一个窗口
-            void openDeviceWindow(route.serial, tab);
-          }}
+          tab={deviceTab}
+          onTabChange={setDeviceTab}
         />
       </MirrorOptionsContext.Provider>
     );

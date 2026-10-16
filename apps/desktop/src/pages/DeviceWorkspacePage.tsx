@@ -12,8 +12,10 @@ export interface DeviceWorkspacePageProps {
   device: DeviceInfo | null;
   tab: WorkspaceTab;
   /**
-   * 独立窗口之间不共享路由：换标签等于再开一个窗口，
-   * 这里只负责把意图交回给 App（由它去创建/聚焦窗口）。
+   * 切换窗口内的标签页。
+   *
+   * 一台设备只有一个窗口，投屏 / 应用 / 文件是它的三个标签，
+   * 切换只更新本地状态，不再开新窗口（投屏会话是有状态的，重建会打断它）。
    */
   onTabChange: (tab: WorkspaceTab) => void;
 }

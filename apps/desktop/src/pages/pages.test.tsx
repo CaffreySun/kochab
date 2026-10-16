@@ -212,7 +212,7 @@ describe('DevicesPage（多设备）', () => {
     expect(openDeviceWindow).toHaveBeenCalledWith('emulator-5554', 'files');
   });
 
-  it('不同标签各自独立：投屏与应用不会复用同一个窗口', async () => {
+  it('卡片上的入口都指向同一台设备，只是初始标签不同', async () => {
     const user = userEvent.setup();
     renderPage({ device_list: [READY_DEVICE] });
 
@@ -450,7 +450,7 @@ describe('DeviceWorkspacePage', () => {
     }
   });
 
-  it('切换标签把意图交回给调用方去开另一个窗口', async () => {
+  it('切换标签只更新窗口内状态，不新开窗口', async () => {
     const onTabChange = vi.fn();
     const { api } = setup();
     const user = userEvent.setup();
@@ -462,6 +462,7 @@ describe('DeviceWorkspacePage', () => {
     await user.click(within(nav).getByText('文件'));
 
     expect(onTabChange).toHaveBeenCalledWith('files');
+    expect(openDeviceWindow).not.toHaveBeenCalled();
   });
 
   it('设备消失时给出提示而不是崩溃', () => {

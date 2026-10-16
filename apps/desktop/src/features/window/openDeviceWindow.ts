@@ -2,22 +2,35 @@ import { MessagePlugin } from 'tdesign-react';
 import type { WorkspaceTab } from '../../pages/DevicesPage';
 import { buildDeviceUrl } from '../../windowMode';
 
-/** 设备窗口标题带上标签，多开时不会只看到一串相同的窗口名。 */
-const TAB_LABELS: Record<WorkspaceTab, string> = {
-  apps: '应用',
-  files: '文件',
-  mirror: '投屏',
-};
+/**
+ * 请求设备窗口切到某个标签。
+ *
+ * 只用于**前端窗口之间**（主窗口 → 设备窗口），不经过 Rust，因此不进
+ * `@ac/ipc-contract` 的事件表——那张表是与 Rust `emit` 调用点一一对应的。
+ * 命名仍沿用 `<领域>://<事件>` 约定。
+ */
+export const DEVICE_TAB_EVENT = 'device://tab-request';
 
-export function deviceWindowLabel(serial: string, tab: WorkspaceTab): string {
-  return `device-${serial}-${tab}`;
+export interface DeviceTabRequest {
+  tab: WorkspaceTab;
 }
 
 /**
- * 打开（或聚焦）某台设备的独立窗口。
+ * 窗口标签是 `device-<serial>`：**一台设备只有一个窗口**。
  *
- * 标签规则 `device-<serial>-<tab>`：同一个按钮重复点击是聚焦已有窗口，
- * 不同标签各自独立窗口——互不抢占，也不靠切换路由重建视图。
+ * 投屏 / 应用 / 文件是同一个窗口里的标签页，切换时不再开新窗口。
+ * 需要并排看时开两个设备窗口没有意义（同一设备同时只能有一条投屏会话），
+ * 真要并排的是两台不同设备。
+ */
+export function deviceWindowLabel(serial: string): string {
+  return `device-${serial}`;
+}
+
+/**
+ * 打开（或聚焦）某台设备的独立窗口，并切到指定标签。
+ *
+ * 窗口已存在时不重建视图：投屏会话是有状态的，重建会把正在跑的会话打断，
+ * 所以改用窗口事件把「切标签」的意图送进去。
  */
 export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promise<void> {
   const url = buildDeviceUrl(serial, tab);
@@ -29,7 +42,7 @@ export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promi
   }
 
   const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
-  const label = deviceWindowLabel(serial, tab);
+  const label = deviceWindowLabel(serial);
 
   try {
     const existing = await WebviewWindow.getByLabel(label);
@@ -37,6 +50,8 @@ export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promi
       await existing.show();
       await existing.unminimize();
       await existing.setFocus();
+      const { emitTo } = await import('@tauri-apps/api/event');
+      await emitTo(label, DEVICE_TAB_EVENT, { tab } satisfies DeviceTabRequest);
       return;
     }
   } catch {
@@ -44,7 +59,7 @@ export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promi
   }
 
   const created = new WebviewWindow(label, {
-    title: `${TAB_LABELS[tab]} · ${serial}`,
+    title: `设备 · ${serial}`,
     url,
     width: 1080,
     height: 760,
