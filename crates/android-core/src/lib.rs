@@ -14,11 +14,13 @@ pub mod device;
 pub mod error;
 pub mod file;
 pub mod model;
+pub mod overview;
 pub mod testing;
 pub mod toolchain;
 
 pub use error::{CoreError, Result};
 pub use model::{
-    AppInfo, DeviceConnectionState, DeviceInfo, DeviceTransport, FileEntry, InstallResult,
-    ShellOutput, ToolchainStatus,
+    AppInfo, BatteryInfo, BatteryStatus, DeviceConnectionState, DeviceInfo, DeviceOverview,
+    DeviceTransport, FileEntry, InstallResult, MemoryInfo, NetworkInfo, ShellOutput, StorageInfo,
+    StorageVolume, SystemInfo, ToolchainStatus,
 };

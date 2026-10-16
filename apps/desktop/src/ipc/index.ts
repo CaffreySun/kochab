@@ -4,6 +4,7 @@ import type {
   CommandError,
   CommandPayloads,
   DeviceInfo,
+  DeviceOverview,
   FileEntry,
   InstallResult,
   SessionClosedPayload,
@@ -76,6 +77,12 @@ export function createApi(transport: Transport) {
     disconnect: (serial: string) =>
       transport.invoke<string, CommandPayloads[typeof COMMANDS.deviceDisconnect]>(
         COMMANDS.deviceDisconnect,
+        { serial },
+      ),
+
+    deviceOverview: (serial: string) =>
+      transport.invoke<DeviceOverview, CommandPayloads[typeof COMMANDS.deviceOverview]>(
+        COMMANDS.deviceOverview,
         { serial },
       ),
 

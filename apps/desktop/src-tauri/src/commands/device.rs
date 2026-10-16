@@ -93,3 +93,28 @@ pub async fn device_disconnect(app: AppHandle, serial: String) -> CommandResult<
     let st = state(&app);
     Ok(st.adb.disconnect_device(&serial).await?)
 }
+
+/// 设备概览：电量 / 存储 / 内存 / 网络 / 系统。
+///
+/// 只对已就绪设备有意义；未就绪时直接拒绝，不做无谓的设备端调用。
+#[tauri::command]
+pub async fn device_overview(
+    app: AppHandle,
+    serial: String,
+) -> CommandResult<android_core::DeviceOverview> {
+    let st = state(&app);
+
+    let entries = st.adb.devices().await?;
+    let entry = entries
+        .into_iter()
+        .find(|e| e.serial == serial)
+        .ok_or_else(|| CommandError::not_found(format!("设备 {serial} 不在连接列表中")))?;
+    if !entry.state.is_ready() {
+        return Err(CommandError::new(
+            "device_not_ready",
+            format!("设备 {serial} 当前状态为 {}，无法读取概览", entry.state),
+        ));
+    }
+
+    Ok(android_core::overview::collect(&st.adb, &serial).await?)
+}

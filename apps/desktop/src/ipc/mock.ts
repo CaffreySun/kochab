@@ -1,6 +1,7 @@
 import type {
   AppInfo,
   DeviceInfo,
+  DeviceOverview,
   FileEntry,
   InstallResult,
   SessionInfo,
@@ -44,6 +45,32 @@ const MOCK_DEVICES: DeviceInfo[] = [
     transport: 'emulator',
   },
 ];
+
+const MOCK_OVERVIEW: DeviceOverview = {
+  serial: 'd4535f72',
+  battery: {
+    level: 82,
+    status: 'discharging',
+    charging: false,
+    temperatureC: 31.5,
+    voltageMv: 4102,
+    health: 2,
+    technology: 'Li-poly',
+  },
+  storage: {
+    data: { totalKb: 54_964_260, usedKb: 16_513_412, availableKb: 38_303_392 },
+    external: { totalKb: 54_964_260, usedKb: 16_513_412, availableKb: 38_303_392 },
+  },
+  memory: { totalKb: 5_767_104, availableKb: 2_751_928 },
+  network: { wlanIpv4: '192.168.1.158' },
+  system: {
+    androidVersion: '13',
+    sdkInt: 33,
+    abi: 'arm64-v8a',
+    securityPatch: '2023-08-01',
+    uptimeSeconds: 160_491,
+  },
+};
 
 const MOCK_APPS: AppInfo[] = [
   {
@@ -169,6 +196,7 @@ export function createMockTransport(
       MOCK_DEVICES.find((d) => d.serial === args?.serial) ?? MOCK_DEVICES[0],
     device_connect_wireless: null,
     device_disconnect: null,
+    device_overview: MOCK_OVERVIEW,
     app_list: MOCK_APPS,
     app_details: MOCK_APPS[1],
     app_install: {

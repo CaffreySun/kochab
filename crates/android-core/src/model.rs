@@ -173,6 +173,101 @@ impl ToolchainStatus {
     }
 }
 
+/// 电池充电状态，对应 `dumpsys battery` 的 `status`。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BatteryStatus {
+    /// `status: 1`
+    Unknown,
+    /// `status: 2`
+    Charging,
+    /// `status: 3`
+    Discharging,
+    /// `status: 4`
+    NotCharging,
+    /// `status: 5`
+    Full,
+}
+
+/// 电池信息（`dumpsys battery`）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BatteryInfo {
+    /// 0–100；`level`/`scale` 换算后的百分比
+    pub level: Option<u8>,
+    pub status: BatteryStatus,
+    /// AC / USB / 无线任一为 true
+    pub charging: bool,
+    /// 摄氏度；`temperature` 以 0.1℃ 为单位上报
+    pub temperature_c: Option<f32>,
+    pub voltage_mv: Option<u32>,
+    /// `health` 的原始值；含义随厂商而异，不猜测
+    pub health: Option<u32>,
+    pub technology: Option<String>,
+}
+
+/// 一个挂载点的容量（`df -k`，单位 KB）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageVolume {
+    pub total_kb: u64,
+    pub used_kb: u64,
+    pub available_kb: u64,
+}
+
+/// 存储占用。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageInfo {
+    /// 内部存储（`/data`）
+    pub data: StorageVolume,
+    /// 用户可见的外部存储（`/storage/emulated` 或 `/data/media`）。
+    /// 与内部存储共用同一块物理分区时数值相同，但这是设备的事实，不合并。
+    pub external: Option<StorageVolume>,
+}
+
+/// 内存（`/proc/meminfo`，单位 KB）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemoryInfo {
+    pub total_kb: u64,
+    pub available_kb: u64,
+}
+
+/// 网络。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkInfo {
+    /// wlan0 的 IPv4 地址；未连 Wi-Fi 时为 None
+    pub wlan_ipv4: Option<String>,
+}
+
+/// 系统信息。设备型号等基础字段在 `DeviceInfo` 里，这里只放概览页独有的。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemInfo {
+    pub android_version: Option<String>,
+    pub sdk_int: Option<u32>,
+    pub abi: Option<String>,
+    pub security_patch: Option<String>,
+    /// `/proc/uptime` 的第一项（秒）
+    pub uptime_seconds: Option<u64>,
+}
+
+/// 设备概览。
+///
+/// 每一项都是**尽力而为**：读不到就是 `None`，不让一个命令失败拖垮整页。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceOverview {
+    pub serial: String,
+    pub battery: Option<BatteryInfo>,
+    pub storage: Option<StorageInfo>,
+    pub memory: Option<MemoryInfo>,
+    pub network: NetworkInfo,
+    pub system: SystemInfo,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

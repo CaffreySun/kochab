@@ -18,6 +18,7 @@ export const COMMANDS = {
   deviceInfo: 'device_info',
   deviceConnectWireless: 'device_connect_wireless',
   deviceDisconnect: 'device_disconnect',
+  deviceOverview: 'device_overview',
 
   // ---- 应用管理 ----
   appList: 'app_list',
@@ -61,6 +62,7 @@ export interface CommandPayloads {
   [COMMANDS.deviceInfo]: { serial: string };
   [COMMANDS.deviceConnectWireless]: { address: string };
   [COMMANDS.deviceDisconnect]: { serial: string };
+  [COMMANDS.deviceOverview]: { serial: string };
 
   [COMMANDS.appList]: { serial: string; filter?: string; showSystemApps?: boolean };
   [COMMANDS.appDetails]: { serial: string; packageName: string };

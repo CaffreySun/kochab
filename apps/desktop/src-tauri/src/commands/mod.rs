@@ -26,6 +26,7 @@ macro_rules! invoke_handler {
             $crate::commands::device::device_info,
             $crate::commands::device::device_connect_wireless,
             $crate::commands::device::device_disconnect,
+            $crate::commands::device::device_overview,
             $crate::commands::app::app_list,
             $crate::commands::app::app_details,
             $crate::commands::app::app_install,

@@ -35,6 +35,65 @@ export interface DeviceInfo {
   transport: DeviceTransport;
 }
 
+/** 电池充电状态（`dumpsys battery` 的 status） */
+export type BatteryStatus = 'unknown' | 'charging' | 'discharging' | 'not-charging' | 'full';
+
+/** 电池信息；字段读不到时为 null，而不是猜一个值 */
+export interface BatteryInfo {
+  /** 0–100 */
+  level: number | null;
+  status: BatteryStatus;
+  /** AC / USB / 无线任一在供电 */
+  charging: boolean;
+  temperatureC: number | null;
+  voltageMv: number | null;
+  /** dumpsys 的原始 health 值，含义随厂商而异 */
+  health: number | null;
+  technology: string | null;
+}
+
+/** 单个挂载点的容量，单位 KB */
+export interface StorageVolume {
+  totalKb: number;
+  usedKb: number;
+  availableKb: number;
+}
+
+export interface StorageInfo {
+  /** 内部存储（/data） */
+  data: StorageVolume;
+  /** 用户可见存储；与 data 同分区时数值相同 */
+  external: StorageVolume | null;
+}
+
+export interface MemoryInfo {
+  totalKb: number;
+  availableKb: number;
+}
+
+export interface NetworkInfo {
+  /** wlan0 的 IPv4；未连 Wi-Fi 时为 null */
+  wlanIpv4: string | null;
+}
+
+export interface SystemInfo {
+  androidVersion: string | null;
+  sdkInt: number | null;
+  abi: string | null;
+  securityPatch: string | null;
+  uptimeSeconds: number | null;
+}
+
+/** 设备概览：每一项都是尽力而为，读不到即为 null */
+export interface DeviceOverview {
+  serial: string;
+  battery: BatteryInfo | null;
+  storage: StorageInfo | null;
+  memory: MemoryInfo | null;
+  network: NetworkInfo;
+  system: SystemInfo;
+}
+
 export interface AppInfo {
   packageName: string;
   /** pm list -f 解析出的 apk 安装路径 */
