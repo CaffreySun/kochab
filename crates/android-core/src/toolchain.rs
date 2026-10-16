@@ -96,7 +96,7 @@ pub async fn diagnose_with(extra_dirs: &[PathBuf], client: Option<&AdbClient>) -
 
     let (adb_version, reachable) = match client {
         Some(client) => match client.version().await {
-            Ok(v) => (Some(v.to_string()), true),
+            Ok(v) => (Some(format!("1.0.{v}")), true),
             Err(_) => {
                 problems.push(
                     "无法连接 adb server。请确认已安装 Android Platform Tools 并已启动设备调试。"
@@ -165,10 +165,18 @@ fn adb_executable_hint() -> Option<String> {
         ]
     };
 
-    candidates
-        .into_iter()
-        .find(|p| p.is_file())
-        .map(|p| p.display().to_string())
+    if let Some(found) = candidates.into_iter().find(|p| p.is_file()) {
+        return Some(found.display().to_string());
+    }
+
+    // WinGet / 包管理器 / 手动解压通常只把 adb 加进 PATH，不在上面的固定目录里。
+    let name = if cfg!(windows) { "adb.exe" } else { "adb" };
+    std::env::var_os("PATH").and_then(|paths| {
+        std::env::split_paths(&paths)
+            .map(|dir| dir.join(name))
+            .find(|p| p.is_file())
+            .map(|p| p.display().to_string())
+    })
 }
 
 #[cfg(test)]

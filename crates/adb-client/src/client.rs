@@ -163,14 +163,18 @@ impl AdbClient {
         codec::send_request(t.as_mut(), "host:version").await?;
         codec::read_status(t.as_mut()).await?;
 
-        // 版本号以长度前缀的 4 字节小端给出
+        // 版本号是 4 个 ASCII 十六进制字符（例如 `0029` 表示 41），
+        // 不是二进制整数——早期实现按小端 u32 解析，会把 `"0029"` 读成 959590448。
         let raw = codec::read_length_prefixed(t.as_mut()).await?;
-        let bytes: [u8; 4] =
-            raw.try_into()
-                .map_err(|raw: Vec<u8>| AdbError::MalformedResponse {
-                    reason: format!("版本号应为 4 字节，实际 {} 字节", raw.len()),
-                })?;
-        Ok(u32::from_le_bytes(bytes))
+        let text = std::str::from_utf8(&raw).map_err(|_| AdbError::MalformedResponse {
+            reason: format!(
+                "版本号应为 ASCII 十六进制，实际含非 UTF-8 字节（{} 字节）",
+                raw.len()
+            ),
+        })?;
+        u32::from_str_radix(text.trim(), 16).map_err(|_| AdbError::MalformedResponse {
+            reason: format!("版本号应为十六进制字符串，实际为 {text:?}"),
+        })
     }
 
     /// `host:devices-l`，一次性列出全部设备。
@@ -604,16 +608,16 @@ mod tests {
     use crate::testing::{MockFactory, MockTransport};
 
     #[tokio::test]
-    async fn 版本号按小端解析() {
-        let client =
-            AdbClient::with_transport(Box::new(MockTransport::okay_with(&41u32.to_le_bytes())));
+    async fn 版本号按_ascii_十六进制解析() {
+        // 真实 adb server 对 host:version 回的是 OKAY + 0004 + "0029"。
+        let client = AdbClient::with_transport(Box::new(MockTransport::okay_with(b"0029")));
 
         assert_eq!(client.version().await.unwrap(), 41);
     }
 
     #[tokio::test]
-    async fn 版本号长度非法时报错() {
-        let client = AdbClient::with_transport(Box::new(MockTransport::okay_with(&[1, 2, 3])));
+    async fn 版本号不是十六进制时报错() {
+        let client = AdbClient::with_transport(Box::new(MockTransport::okay_with(b"zzzz")));
 
         assert!(matches!(
             client.version().await,

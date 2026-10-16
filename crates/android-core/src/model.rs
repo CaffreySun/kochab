@@ -159,6 +159,7 @@ pub struct InstallResult {
 #[serde(rename_all = "camelCase")]
 pub struct ToolchainStatus {
     pub adb_path: Option<String>,
+    /// 形如 `1.0.41`：adb 内部版本号补上 `1.0.` 前缀，与 `adb version` 输出一致。
     pub adb_version: Option<String>,
     pub adb_server_reachable: bool,
     pub scrcpy_server_path: Option<String>,
@@ -258,7 +259,7 @@ mod tests {
     fn 工具链正常与否取决于问题列表() {
         let ok = ToolchainStatus {
             adb_path: Some("adb".into()),
-            adb_version: Some("35".into()),
+            adb_version: Some("1.0.41".into()),
             adb_server_reachable: true,
             scrcpy_server_path: None,
             problems: vec![],
