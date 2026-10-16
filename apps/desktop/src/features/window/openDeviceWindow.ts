@@ -59,11 +59,12 @@ export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promi
   const created = new WebviewWindow(label, {
     title: `设备 · ${serial}`,
     url,
-    width: 1280,
+    // 只是初值：窗口挂载后会按设备分辨率把宽度调成「画面刚好填满」，
+    // 面板打开时再向右变宽。这里给一个偏窄的起点，避免先宽后窄的跳动。
+    width: 480,
     height: 840,
-    // 两栏都要能用：投屏区不能太窄，右栏表格也要放得下。
-    minWidth: 960,
-    minHeight: 600,
+    minWidth: 240,
+    minHeight: 420,
     center: true,
     focus: true,
   });

@@ -19,11 +19,12 @@ describe('设备详情窗口', () => {
   });
 
   it('URL 带上初始面板与是否自动投屏', () => {
+    // 点「投屏」：不开面板，所以不带 panel 参数，窗口保持只有画面的窄宽度
     expect(buildDeviceUrl('d4535f72', 'mirror')).toBe(
-      'index.html?window=device&serial=d4535f72&panel=apps&mirror=1',
+      'index.html?window=device&serial=d4535f72&mirror=1',
     );
     expect(buildDeviceUrl('d4535f72', 'files')).toBe(
-      'index.html?window=device&serial=d4535f72&panel=files&mirror=0',
+      'index.html?window=device&serial=d4535f72&mirror=0&panel=files',
     );
   });
 
@@ -34,13 +35,20 @@ describe('设备详情窗口', () => {
       panel: 'files',
       startMirror: true,
     });
+    // 没有 panel 参数就是「只有投屏」
+    expect(parseWindowRoute('?window=device&serial=d4535f72&mirror=1')).toEqual({
+      kind: 'device',
+      serial: 'd4535f72',
+      panel: null,
+      startMirror: true,
+    });
   });
 
-  it('非法面板回落到应用页，而不是渲染空白右栏', () => {
+  it('非法面板当作没有面板，而不是渲染空白右栏', () => {
     expect(parseWindowRoute('?window=device&serial=d4535f72&panel=nope')).toEqual({
       kind: 'device',
       serial: 'd4535f72',
-      panel: 'apps',
+      panel: null,
       startMirror: false,
     });
   });

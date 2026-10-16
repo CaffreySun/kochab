@@ -265,107 +265,111 @@ body {
 }
 
 /* ------------------------------------------------------------------ *
- * 设备独立窗口
+ * 设备详情（独立窗口）
  *
- * 独立窗口没有左侧导航，内容区要自己撑满并自报家门，
- * 否则多开几个窗口时无法分辨自己在看哪台设备。
+ * 窗口本身就是「一块 9:16 的投屏 + 右侧一条竖排按钮栏」：设备身份写在系统
+ * 标题栏、控制按钮竖排在右侧，所以内容区没有头部、没有标签页，画面基本占满。
+ * 点应用/概览/文件时整个窗口向右变宽，多出一块固定宽度的面板。
  * ------------------------------------------------------------------ */
 
 .ac-detail {
   display: flex;
-  flex-direction: column;
   box-sizing: border-box;
+  gap: var(--ac-space-xs);
   height: 100vh;
-  padding: var(--ac-space-md);
+  padding: var(--ac-space-xs);
   overflow: hidden;
 }
 
-.ac-detail__header {
+/* 画面吃掉所有剩余空间：多留一条边就少一截画面 */
+.ac-mirror-stage {
+  position: relative;
   display: flex;
-  flex: none;
-  flex-wrap: wrap;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #101114;
+  border-radius: 8px;
+}
+
+.ac-mirror-stage__canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  touch-action: none;
+}
+
+.ac-mirror-stage__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
   gap: var(--ac-space-sm);
   align-items: center;
-  justify-content: space-between;
-  padding-bottom: var(--ac-space-sm);
+  justify-content: center;
+  padding: var(--ac-space-md);
+  text-align: center;
 }
 
-.ac-detail__identity {
-  display: flex;
-  gap: var(--ac-space-sm);
-  align-items: baseline;
-  min-width: 0;
+.ac-mirror-stage__hint {
+  max-width: 28ch;
+  margin: 0;
+  color: #b6bcc6;
+  font-size: 12px;
 }
 
-.ac-detail__identity strong {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.ac-detail__identity span {
-  color: var(--ac-text-secondary);
-  font-size: 13px;
-}
-
-.ac-detail__body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
-
-/* 左栏常驻投屏：宽度由拖拽比例给出（内联 flex-basis），这里只保证不被压扁 */
-.ac-detail__mirror {
-  display: flex;
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.ac-detail__splitter {
-  position: relative;
-  flex: none;
-  width: 10px;
-  padding: 0;
-  background: none;
-  border: 0;
-  cursor: col-resize;
-}
-
-/* 1px 分隔线比拖拽热区窄，这样放大命中范围但不显得笨重 */
-.ac-detail__splitter::before {
-  content: '';
+/* 状态浮在画面上，不占布局高度 */
+.ac-mirror-stage__status {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
+  bottom: var(--ac-space-xs);
+  left: var(--ac-space-xs);
+  display: flex;
+  gap: var(--ac-space-xs);
+}
+
+/* 竖排按钮栏：窄，所以几乎不影响画面宽度 */
+.ac-mirror-rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.ac-mirror-rail__divider {
+  width: 60%;
+  height: 1px;
+  margin: 4px 0;
   background: var(--ac-border-color);
-  transform: translateX(-50%);
 }
 
-.ac-detail__splitter:hover::before,
-.ac-detail__splitter:focus-visible::before {
-  width: 3px;
-  background: var(--td-brand-color);
-}
-
+/* 面板是固定宽度：窗口跟着变宽，而不是把画面压窄 */
 .ac-detail__panel {
   display: flex;
-  flex: 1;
+  flex: none;
   flex-direction: column;
-  min-width: 0;
-}
-
-.ac-detail__panel-body {
-  display: flex;
-  flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.ac-detail__panel-body > * {
+.ac-detail__panel > * {
   flex: 1;
-  min-width: 0;
   min-height: 0;
+}
+
+.ac-detail__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-sm);
+}
+
+.ac-detail__text-actions {
+  display: flex;
+  gap: var(--ac-space-sm);
+  justify-content: flex-end;
 }
 
 /* ------------------------------------------------------------------ *
@@ -493,76 +497,6 @@ body {
 .ac-files__entry:disabled {
   color: var(--ac-text-secondary);
   cursor: default;
-}
-
-/* ------------------------------------------------------------------ *
- * 投屏面板（详情页左栏常驻）
- * ------------------------------------------------------------------ */
-
-.ac-mirror-pane {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--ac-space-xs);
-  min-width: 0;
-  padding: var(--ac-space-xs);
-  background: var(--ac-bg-container);
-  border: 1px solid var(--ac-border-color);
-  border-radius: 8px;
-}
-
-/* 画面吃掉所有剩余高度：投屏是这一栏存在的理由，控制条只占最下面一行 */
-.ac-mirror-pane__stage {
-  position: relative;
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
-  overflow: hidden;
-  background: #101114;
-  border-radius: 6px;
-}
-
-.ac-mirror-pane__canvas {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  touch-action: none;
-}
-
-.ac-mirror-pane__overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--ac-space-sm);
-  align-items: center;
-  justify-content: center;
-  padding: var(--ac-space-md);
-  text-align: center;
-}
-
-.ac-mirror-pane__hint {
-  max-width: 28ch;
-  margin: 0;
-  color: #b6bcc6;
-  font-size: 12px;
-}
-
-.ac-mirror-pane__controls {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  gap: var(--ac-space-xs);
-  align-items: center;
-  justify-content: space-between;
-}
-
-.ac-mirror-pane__text {
-  display: flex;
-  flex: none;
-  gap: var(--ac-space-xs);
 }
 
 /* ------------------------------------------------------------------ *

@@ -6,6 +6,7 @@ import {
   MoreIcon,
   PlayCircleIcon,
   UsbIcon,
+  UsergroupIcon,
   WifiIcon,
 } from 'tdesign-icons-react';
 import type { DeviceInfo } from '@ac/ipc-contract';
@@ -24,7 +25,10 @@ export interface DeviceCardProps {
   onAction?: (action: DeviceCardAction, serial: string) => void;
   /** 「更多」按钮的内容插槽：调用方需要会话等能力，因此由外部注入 */
   railMore?: ReactNode;
-  onSelect?: (serial: string) => void;
+  /** 打开设备详情（点卡片主体或序列号） */
+  onOpen?: (serial: string) => void;
+  /** 打开分组设置。与「打开详情」分开，避免两者互相顶掉 */
+  onGroup?: (serial: string) => void;
   /** 设备分组名；没有分组时显示「未分组」 */
   group?: string;
   transportLabel?: Record<DeviceInfo['transport'], string>;
@@ -61,7 +65,8 @@ export function DeviceCard({
   preview,
   onAction,
   railMore,
-  onSelect,
+  onOpen,
+  onGroup,
   group,
   transportLabel = DEFAULT_TRANSPORT_LABEL,
 }: DeviceCardProps) {
@@ -93,19 +98,39 @@ export function DeviceCard({
           data-testid="device-select"
           title={device.serial}
           type="button"
-          onClick={() => onSelect?.(device.serial)}
+          onClick={() => onOpen?.(device.serial)}
         >
           {device.serial}
         </button>
         <Tag size="small" theme={ready ? 'success' : 'danger'} variant="light-outline">
           {ready ? '已连接' : stateLabel(device)}
         </Tag>
+        <Tooltip content="设置分组" placement="top">
+          <button
+            aria-label="设置分组"
+            className="ac-device-card__group-button"
+            data-testid="device-group"
+            type="button"
+            onClick={() => onGroup?.(device.serial)}
+          >
+            <UsergroupIcon size="16px" />
+          </button>
+        </Tooltip>
       </header>
 
       <div className="ac-device-card__body">
-        <div className="ac-device-card__preview" data-testid="device-preview">
+        {/* 缩略图整块可点：进详情的主要入口。缩略图本身不接指针事件，
+            所以不会和「点击开详情」抢手势。 */}
+        <button
+          aria-label={`打开 ${title} 详情`}
+          className="ac-device-card__preview"
+          data-testid="device-preview"
+          title="打开设备详情"
+          type="button"
+          onClick={() => onOpen?.(device.serial)}
+        >
           {preview}
-        </div>
+        </button>
 
         <div className="ac-device-card__rail">
           {ACTIONS.map((action) => (

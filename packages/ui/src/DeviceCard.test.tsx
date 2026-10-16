@@ -48,14 +48,28 @@ describe('DeviceCard', () => {
     expect(screen.queryByText('已连接')).not.toBeInTheDocument();
   });
 
-  it('点击序列号回调传出 serial', async () => {
-    const onSelect = vi.fn();
+  it('点序列号或缩略图都会打开详情', async () => {
+    const onOpen = vi.fn();
     const user = userEvent.setup();
-    renderCard({ onSelect });
+    renderCard({ onOpen });
 
     await user.click(screen.getByTestId('device-select'));
+    await user.click(screen.getByTestId('device-preview'));
 
-    expect(onSelect).toHaveBeenCalledExactlyOnceWith('d4535f72');
+    expect(onOpen).toHaveBeenCalledTimes(2);
+    expect(onOpen).toHaveBeenCalledWith('d4535f72');
+  });
+
+  it('分组是独立按钮，不会顺带打开详情', async () => {
+    const onOpen = vi.fn();
+    const onGroup = vi.fn();
+    const user = userEvent.setup();
+    renderCard({ onOpen, onGroup });
+
+    await user.click(screen.getByTestId('device-group'));
+
+    expect(onGroup).toHaveBeenCalledExactlyOnceWith('d4535f72');
+    expect(onOpen).not.toHaveBeenCalled();
   });
 
   it('四个操作分别回调对应的动作', async () => {

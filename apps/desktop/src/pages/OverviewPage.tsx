@@ -95,7 +95,7 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
                 <dl className="ac-overview__rows">
                   <Row label="温度" value={formatTemperature(overview.battery.temperatureC)} />
                   <Row label="电压" value={formatVoltage(overview.battery.voltageMv)} />
-                  <Row label="电池" value={overview.battery.technology ?? '—'} />
+                  <Row label="电池类型" value={overview.battery.technology ?? '—'} />
                 </dl>
               </>
             ) : (

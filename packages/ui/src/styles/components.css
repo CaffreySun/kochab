@@ -118,6 +118,28 @@
   outline-offset: 2px;
 }
 
+/* 分组入口：与「打开详情」分开的独立按钮，所以做成次级小图标 */
+.ac-device-card__group-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--ac-text-placeholder);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ac-device-card__group-button:hover {
+  color: var(--td-brand-color);
+  background: var(--ac-bg-hover);
+  border-color: var(--ac-border-color);
+}
+
 .ac-device-card__body {
   display: flex;
   gap: var(--ac-space-xs);
@@ -134,9 +156,17 @@
   /* 固定高度而不是 9:16：竖屏画面靠 object-fit: contain 居中留白，
      卡片高度因此与设备分辨率无关，一屏能多放几台设备。 */
   height: 150px;
+  padding: 0;
   overflow: hidden;
   background: #101114;
+  border: 0;
   border-radius: 6px;
+  cursor: pointer;
+}
+
+.ac-device-card__preview:focus-visible {
+  outline: 2px solid var(--td-brand-color);
+  outline-offset: 2px;
 }
 
 .ac-device-card__rail {

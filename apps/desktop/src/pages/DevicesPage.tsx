@@ -256,7 +256,8 @@ export function DevicesPage({
             railMore={<DeviceMoreMenu api={api} device={device} />}
             onAction={handleAction}
             onCheckedChange={toggleSelected}
-            onSelect={(serial) => setAssignTarget({ serial, current: groupOf(serial) })}
+            onGroup={(serial) => setAssignTarget({ serial, current: groupOf(serial) })}
+            onOpen={(serial) => void openDeviceWindow(serial, 'mirror')}
           />
         ))}
       </div>

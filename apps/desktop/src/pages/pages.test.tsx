@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type React from 'react';
-import { COMMANDS, type DeviceInfo } from '@ac/ipc-contract';
+import { COMMANDS, type DeviceInfo, type SessionInfo } from '@ac/ipc-contract';
 import { createApi } from '../ipc';
 import { createMockTransport } from '../ipc/mock';
 import { AppsPage } from './AppsPage';
@@ -13,7 +13,7 @@ import { DeviceMoreMenu } from '../features/devices/DeviceMoreMenu';
 import { TasksProvider } from '../features/tasks/TasksProvider';
 import { useDevices } from '../features/devices/useDevices';
 import { FilesPage } from './FilesPage';
-import { MirrorPane } from '../features/mirror/MirrorPane';
+import { MirrorStage } from '../features/mirror/MirrorStage';
 import { MIRROR_PRIORITY, PREVIEW_PRIORITY } from '../features/mirror/useMirror';
 import { openDeviceWindow } from '../features/window/openDeviceWindow';
 import {
@@ -322,7 +322,7 @@ describe('DevicesPage（多设备）', () => {
     renderPage({ device_list: [READY_DEVICE] });
 
     const card = (await screen.findAllByTestId('device-card'))[0]!;
-    await user.click(within(card).getByTestId('device-select'));
+    await user.click(within(card).getByTestId('device-group'));
     await user.type(await screen.findByPlaceholderText('新建分组名称'), '测试组');
     await user.click(confirmDialog());
 
@@ -338,12 +338,12 @@ describe('DevicesPage（多设备）', () => {
     renderPage({ device_list: [READY_DEVICE] });
 
     const card = (await screen.findAllByTestId('device-card'))[0]!;
-    await user.click(within(card).getByTestId('device-select'));
+    await user.click(within(card).getByTestId('device-group'));
     await user.type(await screen.findByPlaceholderText('新建分组名称'), 'A组');
     await user.click(confirmDialog());
     await waitFor(() => expect(within(card).getByText('A组')).toBeInTheDocument());
 
-    await user.click(within(card).getByTestId('device-select'));
+    await user.click(within(card).getByTestId('device-group'));
     await user.click(await screen.findByRole('button', { name: '未分组' }));
 
     await waitFor(() => {
@@ -404,44 +404,70 @@ describe('DeviceMoreMenu', () => {
   });
 });
 
-describe('MirrorPane', () => {
-  it('点开始投屏后进入投屏中状态并展示分辨率', async () => {
-    const { api } = setup();
+describe('MirrorStage', () => {
+  const SESSION_INFO = {
+    sessionId: 1,
+    serial: 'd4535f72',
+    localPort: 5000,
+    deviceSocket: 'scrcpy_abc',
+    deviceName: 'MIX 2S',
+    width: 540,
+    height: 1080,
+  } as SessionInfo;
+  const SESSION_STATS = {
+    sessionId: 1,
+    frames: 100,
+    keyFrames: 2,
+    bytes: 1024,
+    dropped: 0,
+    fps: 27,
+  };
+  const baseProps = {
+    setCanvas: vi.fn(),
+    info: null,
+    stats: null,
+    error: null,
+    sendTouch: vi.fn(),
+  };
+
+  it('未开始时给出「开始投屏」入口', async () => {
+    const onStart = vi.fn();
     const user = userEvent.setup();
-    render(<MirrorPane api={api} device={READY_DEVICE} />);
+    render(<MirrorStage {...baseProps} status="idle" onStart={onStart} />);
 
     await user.click(screen.getByRole('button', { name: '开始投屏' }));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('mirror-status')).toHaveTextContent('投屏中');
-    });
-    expect(screen.getByText(/540×1080/)).toBeInTheDocument();
+    expect(onStart).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('mirror-status')).toHaveTextContent('未开始');
   });
 
-  it('startRequest 递增会自动开始，不必手点', async () => {
-    const { api, onInvoke } = setup();
-    render(<MirrorPane api={api} device={READY_DEVICE} startRequest={1} />);
+  it('协商中不显示开始按钮', () => {
+    render(<MirrorStage {...baseProps} status="starting" onStart={vi.fn()} />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('mirror-status')).toHaveTextContent('投屏中');
-    });
-    expect(onInvoke).toHaveBeenCalledWith(
-      COMMANDS.sessionStart,
-      expect.objectContaining({ serial: 'd4535f72' }),
-    );
-    // 没有点过任何按钮，说明是自动开的
     expect(screen.queryByRole('button', { name: '开始投屏' })).not.toBeInTheDocument();
+    expect(screen.getByText('正在协商会话…')).toBeInTheDocument();
   });
 
-  it('未开始投屏时按键不会下发 session_key', async () => {
-    const { api, onInvoke } = setup();
-    const user = userEvent.setup();
-    render(<MirrorPane api={api} device={READY_DEVICE} />);
+  it('出错时把原因说清楚，而不是只留一块黑板', () => {
+    render(<MirrorStage {...baseProps} error="设备已离线" status="error" onStart={vi.fn()} />);
 
-    // TDesign 的 disabled 按钮不可交互，断言「点了也没发命令」
-    await user.click(screen.getByLabelText('返回键'));
+    expect(screen.getByRole('alert')).toHaveTextContent('设备已离线');
+  });
 
-    expect(onInvoke).not.toHaveBeenCalledWith(COMMANDS.sessionKey, expect.anything());
+  it('投屏中显示分辨率与帧率，且不再显示开始入口', () => {
+    render(
+      <MirrorStage
+        {...baseProps}
+        info={SESSION_INFO}
+        stats={{ ...SESSION_STATS, fps: 27 }}
+        status="streaming"
+        onStart={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('540×1080')).toBeInTheDocument();
+    expect(screen.getByTestId('mirror-fps')).toHaveTextContent('27 fps');
+    expect(screen.queryByRole('button', { name: '开始投屏' })).not.toBeInTheDocument();
   });
 });
 
@@ -451,7 +477,7 @@ describe('DeviceDetailPage', () => {
     const props: React.ComponentProps<typeof DeviceDetailPage> = {
       api,
       device: READY_DEVICE,
-      panel: 'apps',
+      panel: null,
       startRequest: 0,
       onPanelChange: vi.fn(),
       ...overrides,
@@ -460,65 +486,92 @@ describe('DeviceDetailPage', () => {
     return props;
   }
 
-  it('投屏常驻，右栏是应用/文件/概览三个标签', () => {
+  it('默认只有投屏与竖排按钮栏，没有头部与标签页', () => {
     renderDetail();
 
-    // 设备身份只出现一次，由页面头部负责
-    const header = screen.getByText('Xiaomi MIX 2S').closest('header');
-    expect(header).not.toBeNull();
-    expect(within(header!).getByText('d4535f72')).toBeInTheDocument();
-
-    // 投屏不在标签里：它是常驻左栏
-    expect(screen.getByTestId('mirror-pane')).toBeInTheDocument();
-
-    const nav = document.querySelector('.t-tabs__nav');
-    expect(nav).not.toBeNull();
-    for (const label of ['应用', '文件', '概览']) {
-      expect(within(nav as HTMLElement).getByText(label)).toBeInTheDocument();
-    }
-    expect(within(nav as HTMLElement).queryByText('投屏')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mirror-stage')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '投屏操作' })).toBeInTheDocument();
+    // 设备身份写在系统标题栏，页面里不再重复
+    expect(screen.queryByText('d4535f72')).not.toBeInTheDocument();
+    // 没有面板就不渲染面板容器
+    expect(document.querySelector('.ac-detail__panel')).toBeNull();
   });
 
-  it('切换右栏标签只更新状态，不新开窗口也不卸载投屏', async () => {
+  it('startRequest 递增会自动开始投屏，不必手点', async () => {
+    const { api, onInvoke } = setup();
+    render(
+      <DeviceDetailPage
+        api={api}
+        device={READY_DEVICE}
+        panel={null}
+        startRequest={1}
+        onPanelChange={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mirror-status')).toHaveTextContent('投屏中');
+    });
+    expect(onInvoke).toHaveBeenCalledWith(
+      COMMANDS.sessionStart,
+      expect.objectContaining({ serial: 'd4535f72' }),
+    );
+  });
+
+  it('按钮栏里的应用/概览/文件只切换面板，不卸载投屏', async () => {
     const user = userEvent.setup();
-    const props = renderDetail({ panel: 'apps' });
+    const props = renderDetail({ panel: null });
 
-    const nav = document.querySelector('.t-tabs__nav') as HTMLElement;
-    await user.click(within(nav).getByText('文件'));
+    await user.click(screen.getByRole('button', { name: '应用' }));
 
-    expect(props.onPanelChange).toHaveBeenCalledWith('files');
+    expect(props.onPanelChange).toHaveBeenCalledWith('apps');
+    // 关键：切面板不能把画面卸载掉（否则会话会被停掉重建）
+    expect(screen.getByTestId('mirror-stage')).toBeInTheDocument();
     expect(openDeviceWindow).not.toHaveBeenCalled();
-    // 关键：切面板不能把投屏面板卸载掉（否则会话会被停掉重建）
-    expect(screen.getByTestId('mirror-pane')).toBeInTheDocument();
   });
 
-  it('「专注投屏」收起右栏，并让投屏吃掉整宽', async () => {
+  it('点已打开的面板按钮表示关闭', async () => {
     const user = userEvent.setup();
-    renderDetail();
+    const props = renderDetail({ panel: 'files' });
 
-    const nav = document.querySelector('.t-tabs__nav');
-    expect(nav).not.toBeNull();
-    const mirror = document.querySelector('.ac-detail__mirror');
-    expect(mirror).not.toBeNull();
-    // 默认按拖拽比例分栏，不是 100%
-    expect((mirror as HTMLElement).style.flexBasis).not.toBe('100%');
+    await user.click(screen.getByRole('button', { name: '文件' }));
 
-    await user.click(screen.getByRole('button', { name: '专注投屏' }));
+    expect(props.onPanelChange).toHaveBeenCalledWith(null);
+  });
 
-    expect(document.querySelector('.t-tabs__nav')).toBeNull();
-    expect(screen.getByTestId('mirror-pane')).toBeInTheDocument();
-    // 回归：收起面板后投屏栏要占满，否则右边留一块空白
-    expect((mirror as HTMLElement).style.flexBasis).toBe('100%');
+  it('面板打开时渲染对应页面', async () => {
+    renderDetail({ panel: 'overview' });
+
+    expect(document.querySelector('.ac-detail__panel')).not.toBeNull();
+    // 概览要先取一次数据，所以是异步出现
+    expect(await screen.findByRole('heading', { name: '电池' })).toBeInTheDocument();
+  });
+
+  it('未开始投屏时按键不会下发 session_key', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(
+      <DeviceDetailPage
+        api={api}
+        device={READY_DEVICE}
+        panel={null}
+        startRequest={0}
+        onPanelChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText('返回键'));
+
+    expect(onInvoke).not.toHaveBeenCalledWith(COMMANDS.sessionKey, expect.anything());
   });
 
   it('设备消失时给出提示而不是崩溃', () => {
     renderDetail({ device: null });
 
     expect(screen.getByText('设备未连接')).toBeInTheDocument();
-    expect(screen.queryByTestId('mirror-pane')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mirror-stage')).not.toBeInTheDocument();
   });
 });
-
 describe('SettingsPage', () => {
   const renderSettings = (props: Partial<React.ComponentProps<typeof SettingsPage>> = {}) =>
     render(

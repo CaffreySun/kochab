@@ -9,7 +9,7 @@ import { DevicesPage, DEFAULT_PREVIEW_LIMIT } from './pages/DevicesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TasksPage } from './pages/TasksPage';
 import { TasksProvider, useTasks } from './features/tasks/TasksProvider';
-import { DEFAULT_PANEL, entryIntent, parseWindowRoute, type DetailPanel } from './windowMode';
+import { entryIntent, parseWindowRoute, type DetailPanel } from './windowMode';
 import {
   MirrorOptionsContext,
   readMirrorOptions,
@@ -59,12 +59,12 @@ export function App({ api: injected }: AppProps = {}) {
 
   // 设备窗口只有一个，标签在窗口内切换：URL 上的 tab 只是**初始值**，
   // 之后由用户在窗口内改，或由主窗口通过 DEVICE_TAB_EVENT 指定。
-  // 详情窗口只有一个：右栏面板与「是否已请求开始投屏」都在窗口内演进。
+  // 详情窗口只有一个：面板开合与「是否已请求开始投屏」都在窗口内演进。
   // URL 上的 panel / mirror 只是**初始值**，之后由用户操作或主窗口的入口意图更新。
-  const [detail, setDetail] = useState<{ panel: DetailPanel; startRequests: number }>(() =>
+  const [detail, setDetail] = useState<{ panel: DetailPanel | null; startRequests: number }>(() =>
     route.kind === 'device'
       ? { panel: route.panel, startRequests: route.startMirror ? 1 : 0 }
-      : { panel: DEFAULT_PANEL, startRequests: 0 },
+      : { panel: null, startRequests: 0 },
   );
 
   useEffect(() => {
