@@ -35,6 +35,7 @@ macro_rules! invoke_handler {
             $crate::commands::app::app_launch,
             $crate::commands::app::app_stop,
             $crate::commands::app::app_set_enabled,
+            $crate::commands::app::app_export,
             $crate::commands::file::file_list,
             $crate::commands::file::file_stat,
             $crate::commands::file::file_pull,

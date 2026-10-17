@@ -194,67 +194,69 @@ export function FilesPage({ api, device }: FilesPageProps) {
       ) : null}
 
       {entries.length > 0 ? (
-        <Table
-          columns={[
-            {
-              colKey: 'name',
-              title: '名称',
-              cell: ({ row }: { row: FileEntry }) => (
-                <button
-                  className="ac-files__entry"
-                  disabled={!row.isDirectory}
-                  type="button"
-                  onClick={() => (row.isDirectory ? navigate(row.path) : undefined)}
-                >
-                  {row.isDirectory ? '📁' : '📄'} {row.name}
-                </button>
-              ),
-            },
-            {
-              colKey: 'sizeBytes',
-              title: '大小',
-              width: 100,
-              cell: ({ row }: { row: FileEntry }) =>
-                row.sizeBytes === null ? '—' : formatBytes(row.sizeBytes),
-            },
-            {
-              colKey: 'modifiedAt',
-              title: '修改时间',
-              width: 156,
-              cell: ({ row }: { row: FileEntry }) =>
-                row.modifiedAt === null ? '—' : new Date(row.modifiedAt).toLocaleString(),
-            },
-            {
-              colKey: 'actions',
-              title: '操作',
-              width: 140,
-              cell: ({ row }: { row: FileEntry }) => (
-                <Space size="small">
-                  <Button
-                    disabled={busy || row.isDirectory}
-                    size="small"
-                    variant="text"
-                    onClick={() => void download(row)}
+        <div className="ac-page__scroll">
+          <Table
+            columns={[
+              {
+                colKey: 'name',
+                title: '名称',
+                cell: ({ row }: { row: FileEntry }) => (
+                  <button
+                    className="ac-files__entry"
+                    disabled={!row.isDirectory}
+                    type="button"
+                    onClick={() => (row.isDirectory ? navigate(row.path) : undefined)}
                   >
-                    下载
-                  </Button>
-                  <Button
-                    disabled={busy}
-                    size="small"
-                    theme="danger"
-                    variant="text"
-                    onClick={() => void remove(row)}
-                  >
-                    删除
-                  </Button>
-                </Space>
-              ),
-            },
-          ]}
-          data={entries}
-          rowKey="path"
-          size="small"
-        />
+                    {row.isDirectory ? '📁' : '📄'} {row.name}
+                  </button>
+                ),
+              },
+              {
+                colKey: 'sizeBytes',
+                title: '大小',
+                width: 100,
+                cell: ({ row }: { row: FileEntry }) =>
+                  row.sizeBytes === null ? '—' : formatBytes(row.sizeBytes),
+              },
+              {
+                colKey: 'modifiedAt',
+                title: '修改时间',
+                width: 156,
+                cell: ({ row }: { row: FileEntry }) =>
+                  row.modifiedAt === null ? '—' : new Date(row.modifiedAt).toLocaleString(),
+              },
+              {
+                colKey: 'actions',
+                title: '操作',
+                width: 140,
+                cell: ({ row }: { row: FileEntry }) => (
+                  <Space size="small">
+                    <Button
+                      disabled={busy || row.isDirectory}
+                      size="small"
+                      variant="text"
+                      onClick={() => void download(row)}
+                    >
+                      下载
+                    </Button>
+                    <Button
+                      disabled={busy}
+                      size="small"
+                      theme="danger"
+                      variant="text"
+                      onClick={() => void remove(row)}
+                    >
+                      删除
+                    </Button>
+                  </Space>
+                ),
+              },
+            ]}
+            data={entries}
+            rowKey="path"
+            size="small"
+          />
+        </div>
       ) : null}
     </div>
   );

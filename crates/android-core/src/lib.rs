@@ -20,7 +20,7 @@ pub mod toolchain;
 
 pub use error::{CoreError, Result};
 pub use model::{
-    AppInfo, BatteryInfo, BatteryStatus, DeviceConnectionState, DeviceInfo, DeviceOverview,
-    DeviceTransport, FileEntry, InstallResult, MemoryInfo, NetworkInfo, ShellOutput, StorageInfo,
-    StorageVolume, SystemInfo, ToolchainStatus,
+    AppExportResult, AppInfo, BatteryInfo, BatteryStatus, DeviceConnectionState, DeviceInfo,
+    DeviceOverview, DeviceTransport, ExportedApk, FileEntry, InstallResult, MemoryInfo,
+    NetworkInfo, ShellOutput, StorageInfo, StorageVolume, SystemInfo, ToolchainStatus,
 };

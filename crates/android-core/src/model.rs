@@ -173,6 +173,27 @@ impl ToolchainStatus {
     }
 }
 
+/// 导出后落盘的一个安装文件。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportedApk {
+    pub remote_path: String,
+    pub local_path: String,
+    pub bytes: u64,
+}
+
+/// 导出应用的结果。
+///
+/// 一个包可能有多个安装文件（base + split）；单个时 `directory` 是调用方选的目录，
+/// 多个时会多一层以应用命名的子目录。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppExportResult {
+    pub package_name: String,
+    pub directory: String,
+    pub files: Vec<ExportedApk>,
+}
+
 /// 电池充电状态，对应 `dumpsys battery` 的 `status`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

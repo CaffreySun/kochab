@@ -2,8 +2,8 @@
 
 use std::path::PathBuf;
 
-use android_core::{app, AppInfo, InstallResult};
-use tauri::AppHandle;
+use android_core::{app, AppExportResult, AppInfo, CoreError, InstallResult};
+use tauri::{AppHandle, Manager};
 
 use crate::error::{CommandError, CommandResult};
 use crate::state::state;
@@ -114,6 +114,45 @@ pub async fn app_set_enabled(
 ) -> CommandResult<()> {
     let st = state(&app);
     app::set_enabled(&st.adb, &serial, &package_name, enabled)
+        .await
+        .map_err(Into::into)
+}
+
+/// 导出应用到本机。
+///
+/// `dest_dir` 由前端用系统目录选择器拿到；`suggested_name` 只用来命名
+/// （落盘前会被清洗），为空时退回包名。
+///
+/// 一个包可能有多个安装文件（base + split）：单个时直接平铺，多个时建子目录。
+#[tauri::command]
+pub async fn app_export(
+    app: AppHandle,
+    serial: String,
+    package_name: String,
+    dest_dir: Option<String>,
+    suggested_name: Option<String>,
+) -> CommandResult<AppExportResult> {
+    let st = state(&app);
+    let stem = suggested_name
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or(&package_name);
+
+    // 导出是常用操作，不让用户每次挑目录；默认落到系统「下载」目录。
+    let dest = match dest_dir.as_deref().filter(|s| !s.trim().is_empty()) {
+        Some(dir) => PathBuf::from(dir),
+        None => {
+            let dir = app.path().download_dir().map_err(|_| {
+                CommandError::from(CoreError::PathNotFound("系统「下载」目录不可用".to_owned()))
+            })?;
+            if !dir.exists() {
+                std::fs::create_dir_all(&dir)?;
+            }
+            dir
+        }
+    };
+
+    app::export(&st.adb, &serial, &package_name, &dest, stem)
         .await
         .map_err(Into::into)
 }

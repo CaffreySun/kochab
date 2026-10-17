@@ -1,4 +1,5 @@
 import type {
+  AppExportResult,
   AppInfo,
   DeviceInfo,
   DeviceOverview,
@@ -209,6 +210,26 @@ export function createMockTransport(
     app_launch: null,
     app_stop: null,
     app_set_enabled: null,
+    app_export: (args?: Record<string, unknown>) => {
+      const packageName = typeof args?.packageName === 'string' ? args.packageName : 'com.example';
+      // 真实实现里 destDir 省略即落到系统「下载」目录
+      const destDir = typeof args?.destDir === 'string' ? args.destDir : '/tmp/Downloads';
+      const stem =
+        typeof args?.suggestedName === 'string' && args.suggestedName.trim()
+          ? args.suggestedName
+          : packageName;
+      return {
+        packageName,
+        directory: destDir,
+        files: [
+          {
+            remotePath: `/data/app/${packageName}-x==/base.apk`,
+            localPath: `${destDir}/${stem}.apk`,
+            bytes: 24_000_000,
+          },
+        ],
+      } satisfies AppExportResult;
+    },
     file_list: MOCK_FILES,
     file_stat: (args?: Record<string, unknown>) =>
       MOCK_FILES.find((f) => f.path === args?.path) ?? null,

@@ -29,6 +29,7 @@ export const COMMANDS = {
   appLaunch: 'app_launch',
   appStop: 'app_stop',
   appSetEnabled: 'app_set_enabled',
+  appExport: 'app_export',
 
   // ---- 文件管理 ----
   fileList: 'file_list',
@@ -72,6 +73,14 @@ export interface CommandPayloads {
   [COMMANDS.appLaunch]: { serial: string; packageName: string };
   [COMMANDS.appStop]: { serial: string; packageName: string };
   [COMMANDS.appSetEnabled]: { serial: string; packageName: string; enabled: boolean };
+  [COMMANDS.appExport]: {
+    serial: string;
+    packageName: string;
+    /** 本机目标目录；留空则落到系统「下载」目录 */
+    destDir?: string;
+    /** 建议的文件/子目录名，留空则用包名 */
+    suggestedName?: string;
+  };
 
   [COMMANDS.fileList]: { serial: string; path: string };
   [COMMANDS.fileStat]: { serial: string; path: string };

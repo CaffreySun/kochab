@@ -35,6 +35,25 @@ export interface DeviceInfo {
   transport: DeviceTransport;
 }
 
+/** 导出后落盘的一个安装文件 */
+export interface ExportedApk {
+  remotePath: string;
+  localPath: string;
+  bytes: number;
+}
+
+/**
+ * 导出应用的结果。
+ *
+ * 一个包可能有多个安装文件（base + split）：单个时 `directory` 就是用户选的目录，
+ * 多个时会多一层以应用命名的子目录。
+ */
+export interface AppExportResult {
+  packageName: string;
+  directory: string;
+  files: ExportedApk[];
+}
+
 /** 电池充电状态（`dumpsys battery` 的 status） */
 export type BatteryStatus = 'unknown' | 'charging' | 'discharging' | 'not-charging' | 'full';
 

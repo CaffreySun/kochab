@@ -27,6 +27,11 @@ vi.mock('../features/window/openDeviceWindow', () => ({
   openDeviceWindow: vi.fn().mockResolvedValue(undefined),
 }));
 
+// 安装 APK 要弹系统对话框；单测里固定返回一个路径，避免真的调系统 API。
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: vi.fn().mockResolvedValue('/tmp/out'),
+}));
+
 const READY_DEVICE: DeviceInfo = {
   serial: 'd4535f72',
   state: 'device',
@@ -125,6 +130,24 @@ describe('AppsPage', () => {
 
     expect(screen.getByText('设备未就绪')).toBeInTheDocument();
     expect(onInvoke).not.toHaveBeenCalled();
+  });
+
+  // 导出：不选目录，直接把包名与建议名交给后端（落到系统「下载」目录）
+  it('导出应用直接下发 app_export，由后端决定目录', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<AppsPage api={api} device={READY_DEVICE} />);
+
+    const row = (await screen.findByText('com.example.notes')).closest('tr');
+    await user.click(within(row as HTMLElement).getByRole('button', { name: '导出' }));
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.appExport, {
+        serial: 'd4535f72',
+        packageName: 'com.example.notes',
+        suggestedName: '随手记_2.4.1',
+      });
+    });
   });
 });
 

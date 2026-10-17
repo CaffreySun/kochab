@@ -136,6 +136,24 @@ packages/ipc-contract/src/
 3. 领域错误在 `CommandError::from(CoreError)` 中翻译为稳定错误码（snake_case），
    前端按错误码分支，文案可以随时改。
 
+### 导出应用为什么要全取
+
+`pm path <package>` 会列出该包**全部**安装文件：一个 base 再加若干 split
+（`split_config.arm64_v8a.apk`、`split_config.zh.apk`……）。AAB 上架的应用装到设备上
+就是拆成多个 APK，只导 base 会得到装不上的残缺包，所以 `app::export` 逐个
+`pull` 全部文件。
+
+落盘规则由 `app::plan_export` 决定：
+
+| 安装文件数 | 落盘位置 | 文件名 |
+| --- | --- | --- |
+| 1 | 调用方选的目录，平铺 | `<建议名><设备上的扩展名>` |
+| ≥2 | 新建 `<建议名>/` 子目录 | 保留设备原始名（`base.apk`、各 split） |
+
+建议名由前端拼 `${label ?? packageName}_${versionName}`，后端 `app::sanitize_stem`
+只保留字母、数字、`-`、`_`、.`，所以应用名里的空格、斜杠、冒号不会变成路径。
+拆分包之间靠原始文件名关联，命名关系不能丢，所以多文件时不做任何重命名。
+
 ## 6. 状态管理原则
 
 - **设备列表是事件驱动的**：adb server 的 `host:track-devices` 推送变化，

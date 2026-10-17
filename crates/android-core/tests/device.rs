@@ -135,6 +135,64 @@ async fn 系统应用的_dumpsys_详情可解析() {
 }
 
 #[tokio::test]
+async fn 导出一个应用到本机目录() {
+    let serial = require_device!();
+    let c = client();
+
+    // com.android.settings 在几乎所有 Android 设备上都存在
+    let remote = app::resolve_apks(&c, &serial, "com.android.settings")
+        .await
+        .expect("pm path 失败");
+    assert!(!remote.is_empty(), "应当至少解析出一个安装文件");
+
+    let dir = tempfile::tempdir().expect("创建临时目录失败");
+    let stem = app::sanitize_stem("com.android.settings_1.0");
+    let result = app::export(&c, &serial, "com.android.settings", dir.path(), &stem)
+        .await
+        .expect("导出失败");
+
+    assert_eq!(result.package_name, "com.android.settings");
+    assert_eq!(
+        result.files.len(),
+        remote.len(),
+        "落盘文件数应与 pm path 一致"
+    );
+
+    let into_directory = remote.len() > 1;
+    let expected_dir = if into_directory {
+        dir.path().join(&stem)
+    } else {
+        dir.path().to_path_buf()
+    };
+    assert_eq!(PathBuf::from(&result.directory), expected_dir);
+
+    let mut total = 0u64;
+    for (index, file) in result.files.iter().enumerate() {
+        let local = PathBuf::from(&file.local_path);
+        let name = local.file_name().unwrap().to_string_lossy().to_string();
+        let remote = &remote[index];
+        if into_directory {
+            // 多个安装文件：保留设备上的原始文件名，拆分关系不能丢
+            let original = remote.rsplit('/').next().unwrap_or(remote);
+            assert_eq!(name, original, "多文件时应保留原始文件名");
+        } else {
+            // 单个安装文件：平铺成 <stem><设备上的扩展名>
+            let ext = remote
+                .rsplit_once('.')
+                .map(|(_, ext)| format!(".{ext}"))
+                .unwrap_or_else(|| ".apk".to_owned());
+            assert_eq!(name, format!("{stem}{ext}"), "单文件时应按建议名落盘");
+        }
+        let meta = std::fs::metadata(&local).expect("落盘文件不存在");
+        assert_eq!(meta.len(), file.bytes, "落盘大小与返回值不一致");
+        assert!(meta.len() > 0, "导出的文件不应为空");
+        total += meta.len();
+    }
+    assert!(total > 0, "导出总字节数应大于 0");
+    eprintln!("导出完成：{} 个文件，{} 字节", result.files.len(), total);
+}
+
+#[tokio::test]
 async fn 列出外部存储根目录() {
     let serial = require_device!();
     let c = client();

@@ -1,4 +1,5 @@
 import type {
+  AppExportResult,
   AppInfo,
   AppSelfInfo,
   CommandError,
@@ -134,6 +135,12 @@ export function createApi(transport: Transport) {
       transport.invoke<void, CommandPayloads[typeof COMMANDS.appSetEnabled]>(
         COMMANDS.appSetEnabled,
         { serial, packageName, enabled },
+      ),
+
+    exportApp: (serial: string, packageName: string, suggestedName?: string) =>
+      transport.invoke<AppExportResult, CommandPayloads[typeof COMMANDS.appExport]>(
+        COMMANDS.appExport,
+        { serial, packageName, ...(suggestedName ? { suggestedName } : {}) },
       ),
 
     // ---- 文件 ----

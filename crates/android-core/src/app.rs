@@ -18,7 +18,7 @@ use tracing::debug;
 
 use crate::device::{map_adb_error, require_success};
 use crate::error::{CoreError, Result};
-use crate::model::{AppInfo, InstallResult};
+use crate::model::{AppExportResult, AppInfo, ExportedApk, InstallResult};
 
 /// APK 推送到设备后的临时目录。
 pub const REMOTE_TMP_DIR: &str = "/data/local/tmp";
@@ -465,6 +465,149 @@ async fn shell(client: &AdbClient, serial: &str, command: &str) -> Result<adb_cl
     require_success(out, command)
 }
 
+// ---------------------------------------------------------------- 导出
+
+/// 解析 `pm path <pkg>` 的输出。
+///
+/// 每行形如 `package:/data/app/com.foo-xxxx==/base.apk`。
+/// 带 split 的应用会返回多行（base + `split_config.*.apk`），
+/// 而 **AAB 上架的应用装到设备上也是拆成多个 APK 的**，所以这里必须全取，
+/// 只导 base.apk 会得到装不上的残缺包。
+pub fn parse_pm_path(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("package:"))
+        .map(str::trim)
+        .filter(|path| !path.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+/// 落盘计划。
+///
+/// 单个 APK 直接平铺成 `<stem>.apk`；多个则建一个 `<stem>/` 子目录，
+/// 文件名保持设备上的原名（`base.apk` / `split_config.arm64_v8a.apk`），
+/// 这样拆分包之间的命名关系不会丢。
+pub struct ExportPlan {
+    pub into_directory: bool,
+    pub file_names: Vec<String>,
+}
+
+pub fn plan_export(remote_paths: &[String], stem: &str) -> ExportPlan {
+    if remote_paths.len() <= 1 {
+        let file_name = remote_paths
+            .first()
+            .map(|path| format!("{stem}{}", extension_of(path)))
+            .unwrap_or_else(|| format!("{stem}.apk"));
+        return ExportPlan {
+            into_directory: false,
+            file_names: vec![file_name],
+        };
+    }
+
+    ExportPlan {
+        into_directory: true,
+        file_names: remote_paths
+            .iter()
+            .map(|path| {
+                Path::new(path)
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| sanitize_stem(path))
+            })
+            .collect(),
+    }
+}
+
+/// 保留设备上的扩展名（通常是 `.apk`），没有则按 `.apk` 处理。
+fn extension_of(path: &str) -> String {
+    Path::new(path)
+        .extension()
+        .map(|ext| format!(".{}", ext.to_string_lossy()))
+        .unwrap_or_else(|| ".apk".to_owned())
+}
+
+/// 文件名里只留字母、数字、`-`、`_`、`.`，避免路径分隔符或非法字符。
+pub fn sanitize_stem(value: &str) -> String {
+    let cleaned: String = value
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let trimmed = cleaned.trim_matches(['.', '_', '-']).to_owned();
+    if trimmed.is_empty() {
+        "app".to_owned()
+    } else {
+        trimmed
+    }
+}
+
+/// 找出某个包在设备上的全部安装文件。
+pub async fn resolve_apks(client: &AdbClient, serial: &str, package: &str) -> Result<Vec<String>> {
+    let output = shell(client, serial, &format!("pm path {package}")).await?;
+    let paths = parse_pm_path(output.text());
+    if paths.is_empty() {
+        return Err(CoreError::PathNotFound(format!(
+            "{package} 在设备上没有对应的安装文件"
+        )));
+    }
+    debug!(serial, package, count = paths.len(), "解析到安装文件");
+    Ok(paths)
+}
+
+/// 导出应用到本机。
+///
+/// `dest_dir` 必须是已存在的目录（由调用方用系统目录选择器拿到）；
+/// `stem` 是建议的文件/子目录名，会被清洗。返回实际落盘的文件清单。
+pub async fn export(
+    client: &AdbClient,
+    serial: &str,
+    package: &str,
+    dest_dir: &Path,
+    stem: &str,
+) -> Result<AppExportResult> {
+    if !dest_dir.exists() {
+        return Err(CoreError::PathNotFound(dest_dir.display().to_string()));
+    }
+    if !dest_dir.is_dir() {
+        return Err(CoreError::NotADirectory(dest_dir.display().to_string()));
+    }
+
+    let remote_paths = resolve_apks(client, serial, package).await?;
+    let stem = sanitize_stem(stem);
+    let plan = plan_export(&remote_paths, &stem);
+
+    let target_dir = if plan.into_directory {
+        let dir = dest_dir.join(&stem);
+        std::fs::create_dir_all(&dir)?;
+        dir
+    } else {
+        dest_dir.to_path_buf()
+    };
+
+    let mut files = Vec::with_capacity(remote_paths.len());
+    for (remote, file_name) in remote_paths.iter().zip(plan.file_names.iter()) {
+        let local = crate::file::suggest_local_path(&target_dir, file_name);
+        let bytes = crate::file::pull(client, serial, remote, &local).await?;
+        files.push(ExportedApk {
+            remote_path: remote.clone(),
+            local_path: local.display().to_string(),
+            bytes,
+        });
+    }
+
+    Ok(AppExportResult {
+        package_name: package.to_owned(),
+        directory: target_dir.display().to_string(),
+        files,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -626,5 +769,76 @@ Packages:
         // 2024-01-01 + 74 天 = 2024-03-15
         assert_eq!(days_from_civil(2024, 3, 15), 19_797);
         assert_eq!(days_from_civil(2024, 9, 1), 19_967);
+    }
+
+    // ---- 导出 ----
+
+    #[test]
+    fn 解析_pm_path_的单个安装文件() {
+        let out = "package:/data/app/com.android.email-rR5KhyuSoGN8CFarzgu74w==/base.apk\n";
+        assert_eq!(
+            parse_pm_path(out),
+            vec!["/data/app/com.android.email-rR5KhyuSoGN8CFarzgu74w==/base.apk"]
+        );
+    }
+
+    #[test]
+    fn 解析_pm_path_的拆分包() {
+        // AAB 上架的应用装到设备上就是 base + 若干 split
+        let out = "\
+package:/data/app/com.foo-1==/base.apk
+package:/data/app/com.foo-1==/split_config.arm64_v8a.apk
+package:/data/app/com.foo-1==/split_config.zh.apk
+";
+        assert_eq!(parse_pm_path(out).len(), 3);
+    }
+
+    #[test]
+    fn 无关行被忽略而不是报错() {
+        assert!(parse_pm_path("").is_empty());
+        assert!(parse_pm_path("Error: package not found\n").is_empty());
+        assert_eq!(
+            parse_pm_path("package:  \npackage:/a/b.apk\n"),
+            vec!["/a/b.apk"]
+        );
+    }
+
+    #[test]
+    fn 单个文件平铺命名() {
+        let paths = vec!["/data/app/x==/base.apk".to_owned()];
+        let plan = plan_export(&paths, "com.example.app_1.2");
+
+        assert!(!plan.into_directory);
+        assert_eq!(plan.file_names, vec!["com.example.app_1.2.apk"]);
+    }
+
+    #[test]
+    fn 多个文件建子目录并保留原名() {
+        let paths = vec![
+            "/data/app/x==/base.apk".to_owned(),
+            "/data/app/x==/split_config.arm64_v8a.apk".to_owned(),
+        ];
+        let plan = plan_export(&paths, "com.example.app");
+
+        assert!(plan.into_directory);
+        assert_eq!(
+            plan.file_names,
+            vec!["base.apk", "split_config.arm64_v8a.apk"]
+        );
+    }
+
+    #[test]
+    fn 扩展名跟随设备上的真实文件() {
+        let paths = vec!["/data/app/x==/base.apex".to_owned()];
+        assert_eq!(plan_export(&paths, "weird").file_names, vec!["weird.apex"]);
+    }
+
+    #[test]
+    fn 文件名清洗掉路径分隔符与非法字符() {
+        assert_eq!(sanitize_stem("com.example/app"), "com.example_app");
+        assert_eq!(sanitize_stem("小米 应用"), "小米_应用");
+        assert_eq!(sanitize_stem("..."), "app");
+        assert_eq!(sanitize_stem(""), "app");
+        assert_eq!(sanitize_stem("a:b*c"), "a_b_c");
     }
 }

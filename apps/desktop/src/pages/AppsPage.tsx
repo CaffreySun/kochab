@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Input, Loading, Space, Switch, Table, Tag } from 'tdesign-react';
+import { Button, Input, Loading, MessagePlugin, Space, Switch, Table, Tag } from 'tdesign-react';
 import { open } from '@tauri-apps/plugin-dialog';
 import type { AppInfo, DeviceInfo } from '@ac/ipc-contract';
 import { EmptyState } from '@ac/ui';
@@ -77,6 +77,33 @@ export function AppsPage({ api, device }: AppsPageProps) {
     });
   }, [api, serial, run, refresh]);
 
+  /**
+   * 把应用导出到本机的「下载」目录。
+   *
+   * 一个包可能有多个安装文件（base + split，AAB 应用装到设备上就是这样），
+   * 平铺还是建子目录由后端决定，这里不选目录。
+   */
+  const exportApp = useCallback(
+    async (row: AppInfo) => {
+      if (!api || !serial) return;
+
+      const suggested = row.versionName
+        ? `${row.label ?? row.packageName}_${row.versionName}`
+        : undefined;
+
+      await run(row.packageName, '导出', async () => {
+        const result = await api.exportApp(serial, row.packageName, suggested);
+        const one = result.files.length === 1 ? result.files[0] : undefined;
+        await MessagePlugin.success(
+          one
+            ? `已导出到 ${one.localPath}`
+            : `已导出 ${result.files.length} 个文件到 ${result.directory}`,
+        );
+      });
+    },
+    [api, serial, run],
+  );
+
   const visible = useMemo(() => {
     const needle = keyword.trim().toLowerCase();
     if (!needle) return apps;
@@ -142,90 +169,102 @@ export function AppsPage({ api, device }: AppsPageProps) {
       ) : null}
 
       {visible.length > 0 ? (
-        <Table
-          columns={[
-            {
-              colKey: 'label',
-              title: '应用',
-              cell: ({ row }: { row: AppInfo }) => (
-                <div className="ac-app-cell">
-                  <span className="ac-app-cell__name">
-                    {row.label ?? row.packageName}
-                    {/* 类型并进名称行：右栏只有半个窗口宽，独立一列不划算 */}
-                    <Tag
+        <div className="ac-page__scroll">
+          <Table
+            columns={[
+              {
+                colKey: 'label',
+                title: '应用',
+                cell: ({ row }: { row: AppInfo }) => (
+                  <div className="ac-app-cell">
+                    <span className="ac-app-cell__name">
+                      {row.label ?? row.packageName}
+                      {/* 类型并进名称行：右栏只有半个窗口宽，独立一列不划算 */}
+                      <Tag
+                        size="small"
+                        theme={row.isSystem ? 'default' : 'primary'}
+                        variant="light-outline"
+                      >
+                        {row.isSystem ? '系统' : '第三方'}
+                      </Tag>
+                    </span>
+                    <span className="ac-app-cell__package">{row.packageName}</span>
+                  </div>
+                ),
+              },
+              {
+                colKey: 'actions',
+                title: '操作',
+                width: 280,
+                cell: ({ row }: { row: AppInfo }) => (
+                  <Space size="small">
+                    <Button
+                      disabled={busy === row.packageName}
                       size="small"
-                      theme={row.isSystem ? 'default' : 'primary'}
-                      variant="light-outline"
+                      variant="text"
+                      onClick={() =>
+                        void run(row.packageName, '启动', () =>
+                          api!.launchApp(serial, row.packageName),
+                        )
+                      }
                     >
-                      {row.isSystem ? '系统' : '第三方'}
-                    </Tag>
-                  </span>
-                  <span className="ac-app-cell__package">{row.packageName}</span>
-                </div>
-              ),
-            },
-            {
-              colKey: 'actions',
-              title: '操作',
-              width: 220,
-              cell: ({ row }: { row: AppInfo }) => (
-                <Space size="small">
-                  <Button
-                    disabled={busy === row.packageName}
-                    size="small"
-                    variant="text"
-                    onClick={() =>
-                      void run(row.packageName, '启动', () =>
-                        api!.launchApp(serial, row.packageName),
-                      )
-                    }
-                  >
-                    启动
-                  </Button>
-                  <Button
-                    disabled={busy === row.packageName}
-                    size="small"
-                    variant="text"
-                    onClick={() =>
-                      void run(row.packageName, '停止', () => api!.stopApp(serial, row.packageName))
-                    }
-                  >
-                    停止
-                  </Button>
-                  <Button
-                    disabled={busy === row.packageName}
-                    size="small"
-                    variant="text"
-                    onClick={() =>
-                      void run(row.packageName, '清除数据', async () => {
-                        await api!.clearAppData(serial, row.packageName);
-                      })
-                    }
-                  >
-                    清除数据
-                  </Button>
-                  <Button
-                    disabled={busy === row.packageName || row.isSystem}
-                    size="small"
-                    theme="danger"
-                    variant="text"
-                    onClick={() =>
-                      void run(row.packageName, '卸载', async () => {
-                        await api!.uninstallApp(serial, row.packageName);
-                        await refresh();
-                      })
-                    }
-                  >
-                    卸载
-                  </Button>
-                </Space>
-              ),
-            },
-          ]}
-          data={visible}
-          rowKey="packageName"
-          size="small"
-        />
+                      启动
+                    </Button>
+                    <Button
+                      disabled={busy === row.packageName}
+                      size="small"
+                      variant="text"
+                      onClick={() =>
+                        void run(row.packageName, '停止', () =>
+                          api!.stopApp(serial, row.packageName),
+                        )
+                      }
+                    >
+                      停止
+                    </Button>
+                    <Button
+                      disabled={busy === row.packageName}
+                      size="small"
+                      variant="text"
+                      onClick={() =>
+                        void run(row.packageName, '清除数据', async () => {
+                          await api!.clearAppData(serial, row.packageName);
+                        })
+                      }
+                    >
+                      清除数据
+                    </Button>
+                    <Button
+                      disabled={busy === row.packageName || row.isSystem}
+                      size="small"
+                      theme="danger"
+                      variant="text"
+                      onClick={() =>
+                        void run(row.packageName, '卸载', async () => {
+                          await api!.uninstallApp(serial, row.packageName);
+                          await refresh();
+                        })
+                      }
+                    >
+                      卸载
+                    </Button>
+                    <Button
+                      disabled={busy === row.packageName}
+                      size="small"
+                      variant="text"
+                      onClick={() => void exportApp(row)}
+                    >
+                      导出
+                    </Button>
+                  </Space>
+                ),
+              },
+            ]}
+            data={visible}
+            rowKey="packageName"
+            size="small"
+          />
+        </div>
       ) : null}
     </div>
   );
