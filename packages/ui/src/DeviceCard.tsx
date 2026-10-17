@@ -27,6 +27,10 @@ export interface DeviceCardProps {
   onAction?: (action: DeviceCardAction, serial: string) => void;
   /** 「更多」按钮的内容插槽：调用方需要会话等能力，因此由外部注入 */
   railMore?: ReactNode;
+  /** 录屏按钮插槽（位于文件与更多之间） */
+  railRecord?: ReactNode;
+  /** 正在录屏时在预览上显示读秒 */
+  recording?: { active: boolean; elapsed: number };
   /** 打开设备详情（点卡片主体或序列号） */
   onOpen?: (serial: string) => void;
   /** 打开分组设置。与「打开详情」分开，避免两者互相顶掉 */
@@ -68,6 +72,8 @@ export function DeviceCard({
   preview,
   onAction,
   railMore,
+  railRecord,
+  recording,
   onOpen,
   onGroup,
   group,
@@ -135,6 +141,12 @@ export function DeviceCard({
           onClick={() => onOpen?.(device.serial)}
         >
           {preview}
+          {recording?.active ? (
+            <span className="ac-device-card__recording" data-testid="device-recording">
+              <span aria-hidden="true" className="ac-device-card__recording-dot" />
+              {formatClock(recording.elapsed)}
+            </span>
+          ) : null}
         </button>
 
         <div className="ac-device-card__rail">
@@ -151,6 +163,7 @@ export function DeviceCard({
               </button>
             </Tooltip>
           ))}
+          {railRecord}
           {/* 「更多」由调用方注入：它的动作需要会话等能力 */}
           {railMore ?? (
             <button
@@ -178,6 +191,12 @@ export function DeviceCard({
       </footer>
     </article>
   );
+}
+
+function formatClock(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const rest = Math.floor(seconds % 60);
+  return `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
 }
 
 function stateLabel(device: DeviceInfo): string {

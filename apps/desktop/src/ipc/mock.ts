@@ -220,8 +220,14 @@ export function createMockTransport(
       message: '屏幕尺寸与 density 都是系统默认值，无需恢复',
     },
     device_screenshot: { path: '/tmp/Downloads/screenshot.png', bytes: 1_728_740 },
-    device_record_start: { maxSeconds: 180 },
+    device_record_start: () => ({
+      active: true,
+      startedAt: Date.now(),
+      maxSeconds: 180,
+    }),
     device_record_stop: { path: '/tmp/Downloads/recording.mp4', bytes: 68_872 },
+    device_record_status: { active: false, startedAt: null, maxSeconds: 180 },
+    device_record_cancel: null,
     app_list: MOCK_APPS,
     app_details: MOCK_APPS[1],
     app_install: {

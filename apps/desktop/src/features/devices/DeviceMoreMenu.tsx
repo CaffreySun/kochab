@@ -4,7 +4,7 @@ import { MoreIcon } from 'tdesign-icons-react';
 import type { DeviceInfo, ShellOutput } from '@ac/ipc-contract';
 import type { Api } from '../../ipc';
 import { toMessage } from '../../ipc';
-import { fileStamp, RecordDialog } from './RecordDialog';
+import { fileStamp, formatDuration, useRecording } from '../recording/useRecording';
 import { readShellHistory, rememberShellCommand } from './shellHistory';
 
 /** 重启设备。 */
@@ -51,13 +51,15 @@ export function DeviceMoreMenu({
   onTogglePin,
 }: DeviceMoreMenuProps) {
   const [shellOpen, setShellOpen] = useState(false);
-  const [recordOpen, setRecordOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [command, setCommand] = useState('');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ShellOutput | null>(null);
   const [shellHistory, setShellHistory] = useState<string[]>(readShellHistory);
+  const recording = useRecording(api, device.serial, {
+    onSaved: (saved) => void MessagePlugin.success(`录屏已保存到 ${saved.path}`),
+  });
 
   const runShell = async (serial: string, cmd: string, label: string): Promise<boolean> => {
     if (!api || !cmd.trim()) return false;
@@ -105,9 +107,27 @@ export function DeviceMoreMenu({
     setResult(null);
   };
 
+  const toggleRecording = async () => {
+    try {
+      if (recording.active) {
+        const saved = await recording.stop();
+        if (saved) void MessagePlugin.success(`录屏已保存到 ${saved.path}`);
+      } else {
+        await recording.start();
+        void MessagePlugin.success('已开始录屏，再次点击停止');
+      }
+    } catch (cause) {
+      void MessagePlugin.error(`录屏操作失败：${toMessage(cause)}`);
+    }
+  };
+
   const options = [
     { content: '截屏', value: 'screenshot' },
-    { content: '录屏', value: 'record' },
+    {
+      content: recording.active ? `停止录屏（${formatDuration(recording.elapsed)}）` : '开始录屏',
+      value: 'record',
+    },
+    ...(recording.active ? [{ content: '放弃录屏（不保存）', value: 'record-cancel' }] : []),
     {
       content: device.transport === 'wifi' ? '关闭无线端口' : '无线调试',
       value: 'wireless',
@@ -185,7 +205,13 @@ export function DeviceMoreMenu({
               void takeScreenshot();
               break;
             case 'record':
-              setRecordOpen(true);
+              void toggleRecording();
+              break;
+            case 'record-cancel':
+              void recording
+                .cancel()
+                .then(() => MessagePlugin.info('已放弃本次录屏'))
+                .catch((cause) => MessagePlugin.error(`放弃录屏失败：${toMessage(cause)}`));
               break;
             case 'reset-resolution':
               void resetDisplay();
@@ -328,13 +354,6 @@ export function DeviceMoreMenu({
           />
         </div>
       </Dialog>
-
-      <RecordDialog
-        api={api}
-        open={recordOpen}
-        serial={device.serial}
-        onClose={() => setRecordOpen(false)}
-      />
     </>
   );
 }

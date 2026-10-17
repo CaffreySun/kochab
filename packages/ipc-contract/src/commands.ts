@@ -28,6 +28,8 @@ export const COMMANDS = {
   deviceScreenshot: 'device_screenshot',
   deviceRecordStart: 'device_record_start',
   deviceRecordStop: 'device_record_stop',
+  deviceRecordStatus: 'device_record_status',
+  deviceRecordCancel: 'device_record_cancel',
 
   // ---- 应用管理 ----
   appList: 'app_list',
@@ -82,6 +84,8 @@ export interface CommandPayloads {
   [COMMANDS.deviceScreenshot]: { serial: string; suggestedName?: string };
   [COMMANDS.deviceRecordStart]: { serial: string };
   [COMMANDS.deviceRecordStop]: { serial: string; suggestedName?: string };
+  [COMMANDS.deviceRecordStatus]: { serial: string };
+  [COMMANDS.deviceRecordCancel]: { serial: string };
 
   [COMMANDS.appList]: { serial: string; filter?: string; showSystemApps?: boolean };
   [COMMANDS.appDetails]: { serial: string; packageName: string };

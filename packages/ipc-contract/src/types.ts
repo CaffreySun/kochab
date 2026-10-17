@@ -119,8 +119,20 @@ export interface SavedFile {
   bytes: number;
 }
 
-/** 开始录屏后的返回；`maxSeconds` 是设备端 screenrecord 的时限 */
-export interface RecordStarted {
+/** 录屏状态；跨窗口统一以它为准 */
+export interface RecordingStatus {
+  active: boolean;
+  /** 开始录制的 Unix 毫秒；未录制时为 null */
+  startedAt: number | null;
+  /** 设备端 screenrecord 的时限（秒） */
+  maxSeconds: number;
+}
+
+/** 录屏状态变化事件 */
+export interface RecordingChangedPayload {
+  serial: string;
+  active: boolean;
+  startedAt: number | null;
   maxSeconds: number;
 }
 

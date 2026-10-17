@@ -77,6 +77,8 @@ macro_rules! invoke_handler {
             $crate::commands::media::device_screenshot,
             $crate::commands::media::device_record_start,
             $crate::commands::media::device_record_stop,
+            $crate::commands::media::device_record_status,
+            $crate::commands::media::device_record_cancel,
             $crate::commands::app::app_list,
             $crate::commands::app::app_details,
             $crate::commands::app::app_install,

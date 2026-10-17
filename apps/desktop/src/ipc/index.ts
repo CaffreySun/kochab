@@ -10,7 +10,8 @@ import type {
   DisplayResetResult,
   FileEntry,
   InstallResult,
-  RecordStarted,
+  RecordingChangedPayload,
+  RecordingStatus,
   SavedFile,
   SessionClosedPayload,
   SessionInfo,
@@ -124,15 +125,27 @@ export function createApi(transport: Transport) {
       ),
 
     startRecording: (serial: string) =>
-      transport.invoke<RecordStarted, CommandPayloads[typeof COMMANDS.deviceRecordStart]>(
+      transport.invoke<RecordingStatus, CommandPayloads[typeof COMMANDS.deviceRecordStart]>(
         COMMANDS.deviceRecordStart,
         { serial },
       ),
 
     stopRecording: (serial: string, suggestedName?: string) =>
-      transport.invoke<SavedFile, CommandPayloads[typeof COMMANDS.deviceRecordStop]>(
+      transport.invoke<SavedFile | null, CommandPayloads[typeof COMMANDS.deviceRecordStop]>(
         COMMANDS.deviceRecordStop,
         { serial, ...(suggestedName ? { suggestedName } : {}) },
+      ),
+
+    recordStatus: (serial: string) =>
+      transport.invoke<RecordingStatus, CommandPayloads[typeof COMMANDS.deviceRecordStatus]>(
+        COMMANDS.deviceRecordStatus,
+        { serial },
+      ),
+
+    cancelRecording: (serial: string) =>
+      transport.invoke<void, CommandPayloads[typeof COMMANDS.deviceRecordCancel]>(
+        COMMANDS.deviceRecordCancel,
+        { serial },
       ),
 
     // ---- 应用 ----
@@ -317,6 +330,11 @@ export function createApi(transport: Transport) {
 
     onSessionClosed: (handler: (payload: SessionClosedPayload) => void): Promise<UnlistenFn> =>
       transport.listen<SessionClosedPayload>(EVENTS.sessionClosed, handler),
+
+    onRecordingChanged: (
+      handler: (payload: RecordingChangedPayload) => void,
+    ): Promise<UnlistenFn> =>
+      transport.listen<RecordingChangedPayload>(EVENTS.recordingChanged, handler),
   };
 }
 

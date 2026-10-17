@@ -5,7 +5,7 @@ import type { DeviceInfo } from '@ac/ipc-contract';
 import { EmptyState } from '@ac/ui';
 import type { Api } from '../ipc';
 import { toMessage } from '../ipc';
-import { fileStamp } from '../features/devices/RecordDialog';
+import { fileStamp, useRecording } from '../features/recording/useRecording';
 import { MIRROR_PRIORITY, useMirror } from '../features/mirror/useMirror';
 import { MirrorRail } from '../features/mirror/MirrorRail';
 import { MirrorStage } from '../features/mirror/MirrorStage';
@@ -59,6 +59,9 @@ export function DeviceDetailPage({
   }, []);
   const options = useMirrorOptions();
   const serial = device?.serial ?? '';
+  const recording = useRecording(api, serial, {
+    onSaved: (saved) => void MessagePlugin.success(`录屏已保存到 ${saved.path}`),
+  });
 
   const mirror = useMirror(
     api,
@@ -115,6 +118,20 @@ export function DeviceDetailPage({
     }
   }, [api, device]);
 
+  const toggleRecording = useCallback(async () => {
+    try {
+      if (recording.active) {
+        const saved = await recording.stop();
+        if (saved) await MessagePlugin.success(`录屏已保存到 ${saved.path}`);
+      } else {
+        await recording.start();
+        await MessagePlugin.success('已开始录屏，再次点击停止');
+      }
+    } catch (cause) {
+      await MessagePlugin.error(`录屏操作失败：${toMessage(cause)}`);
+    }
+  }, [recording]);
+
   if (!device) {
     return (
       <div className="ac-detail">
@@ -136,6 +153,7 @@ export function DeviceDetailPage({
         <MirrorStage
           error={mirror.error}
           info={mirror.info}
+          recordingSeconds={recording.active ? recording.elapsed : null}
           sendTouch={mirror.sendTouch}
           setCanvas={setCanvas}
           stats={mirror.stats}
@@ -145,9 +163,12 @@ export function DeviceDetailPage({
 
         <MirrorRail
           panel={panel}
+          recordingActive={recording.active}
+          recordingElapsed={recording.elapsed}
           status={status}
           onKey={onKey}
           onOpenText={() => setTextOpen(true)}
+          onRecordToggle={() => void toggleRecording()}
           onRestart={() => {
             void mirror.stop().then(() => mirror.start());
           }}

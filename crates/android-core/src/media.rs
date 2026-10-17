@@ -44,6 +44,8 @@ pub struct Recording {
     pub remote_path: String,
     /// `screenrecord` 的 stderr；启动失败时用它解释原因
     pub log_path: String,
+    /// 开始录制的 Unix 毫秒时间戳；跨窗口显示读秒以它为准
+    pub started_at: u64,
 }
 
 /// 截屏并保存到 `local_dir`。
@@ -134,6 +136,7 @@ pub async fn start_recording(client: &AdbClient, serial: &str) -> Result<Recordi
         pid,
         remote_path,
         log_path,
+        started_at: now_millis(),
     })
 }
 
@@ -219,6 +222,35 @@ pub async fn stop_recording(
     })
 }
 
+/// 放弃一条录屏：尽力停掉设备端进程并删除临时文件，不拉取结果。
+///
+/// 用于设备断开、用户明确放弃等场景；所有错误都忽略——调用方此时只想清掉状态。
+pub async fn cancel_recording(client: &AdbClient, serial: &str, recording: &Recording) {
+    let _ = client
+        .shell(serial, &format!("kill -2 {}", recording.pid))
+        .await;
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    let _ = client
+        .shell(
+            serial,
+            &format!("rm -f '{}' '{}'", recording.remote_path, recording.log_path),
+        )
+        .await;
+}
+
+/// 清理设备端遗留的临时文件（崩溃/强退后留下的截图与录屏）。
+///
+/// 只删 10 分钟前的文件：避免把另一个正在运行的实例刚创建的录制删掉。
+pub async fn clean_stale(client: &AdbClient, serial: &str) {
+    let _ = client
+        .shell(
+            serial,
+            "find /data/local/tmp -maxdepth 1 -name 'ac-shot-*' -mmin +10 -delete 2>/dev/null; \
+             find /data/local/tmp -maxdepth 1 -name 'ac-rec-*' -mmin +10 -delete 2>/dev/null",
+        )
+        .await;
+}
+
 /// 从 `echo $!` 的输出里取 PID。
 ///
 /// 只接受纯数字；设备 shell 可能顺带打印别的内容（例如 `sh: ...`），
@@ -262,12 +294,15 @@ pub fn sanitized_name(suggested: Option<&str>, ext: &str, fallback: &str) -> Str
     format!("{stem}.{ext}")
 }
 
-fn unique_token() -> String {
-    let millis = SystemTime::now()
+fn now_millis() -> u64 {
+    SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0);
-    format!("{millis}-{}", std::process::id())
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn unique_token() -> String {
+    format!("{}-{}", now_millis(), std::process::id())
 }
 
 async fn read_log(client: &AdbClient, serial: &str, log_path: &str) -> String {

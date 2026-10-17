@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { Button, Dialog, Input, Select, Space, Tag } from 'tdesign-react';
 import { LinkIcon, RefreshIcon, SearchIcon } from 'tdesign-icons-react';
 import type { DeviceConnectionState, DeviceInfo } from '@ac/ipc-contract';
-import { DeviceCard, EmptyState, type DeviceCardAction } from '@ac/ui';
+import { EmptyState, type DeviceCardAction } from '@ac/ui';
+import { DeviceRecordingCard } from '../features/recording/DeviceRecordingCard';
 import type { Api } from '../ipc';
 import { DevicePreview } from '../features/preview/DevicePreview';
 import { DeviceMoreMenu } from '../features/devices/DeviceMoreMenu';
@@ -297,8 +298,9 @@ export function DevicesPage({
 
       <div className="ac-device-grid">
         {visible.map((device: DeviceInfo) => (
-          <DeviceCard
+          <DeviceRecordingCard
             key={device.serial}
+            api={api}
             checked={selected.has(device.serial)}
             device={device}
             group={groupOf(device.serial)}

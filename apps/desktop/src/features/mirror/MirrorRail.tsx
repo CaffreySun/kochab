@@ -10,10 +10,12 @@ import {
   MinusIcon,
   MoreIcon,
   ScreenshotIcon,
+  VideoCameraIcon,
   ViewModuleIcon,
 } from 'tdesign-icons-react';
 import { ANDROID_KEY, KEYCODE_BACK } from '@ac/scrcpy-web';
 import type { DetailPanel } from '../../windowMode';
+import { formatDuration } from '../recording/useRecording';
 import type { MirrorStatus } from './useMirror';
 
 export interface MirrorRailProps {
@@ -27,6 +29,11 @@ export interface MirrorRailProps {
   onTogglePanel: (panel: DetailPanel) => void;
   /** 截屏并保存；不传时不显示截图按钮 */
   onScreenshot?: () => void;
+  /** 正在录屏 */
+  recordingActive?: boolean;
+  recordingElapsed?: number;
+  /** 开始/停止录屏；不传时不显示录屏按钮 */
+  onRecordToggle?: () => void;
 }
 
 /**
@@ -45,6 +52,9 @@ export function MirrorRail({
   onOpenText,
   onTogglePanel,
   onScreenshot,
+  recordingActive = false,
+  recordingElapsed = 0,
+  onRecordToggle,
 }: MirrorRailProps) {
   const streaming = status === 'streaming';
   const key = (keycode: number) => () => onKey(keycode);
@@ -125,6 +135,21 @@ export function MirrorRail({
             size="small"
             variant="outline"
             onClick={onScreenshot}
+          />
+        </Tooltip>
+      ) : null}
+      {onRecordToggle ? (
+        <Tooltip
+          content={recordingActive ? `停止录屏（${formatDuration(recordingElapsed)}）` : '开始录屏'}
+          placement="left"
+        >
+          <Button
+            aria-label={recordingActive ? '停止录屏' : '开始录屏'}
+            icon={<VideoCameraIcon />}
+            size="small"
+            theme={recordingActive ? 'danger' : 'default'}
+            variant={recordingActive ? 'base' : 'outline'}
+            onClick={onRecordToggle}
           />
         </Tooltip>
       ) : null}

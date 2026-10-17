@@ -438,6 +438,29 @@ describe('DevicesPage（多设备）', () => {
     });
   });
 
+  it('卡片录屏按钮可开始/停止，并在预览上显示读秒', async () => {
+    const user = userEvent.setup();
+    const { onInvoke } = renderPage({ device_list: [READY_DEVICE] });
+
+    const card = (await screen.findAllByTestId('device-card'))[0]!;
+    await user.click(within(card).getByRole('button', { name: '录屏' }));
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceRecordStart, {
+        serial: 'd4535f72',
+      });
+    });
+    expect(await within(card).findByTestId('device-recording')).toBeInTheDocument();
+
+    await user.click(within(card).getByRole('button', { name: '停止录屏' }));
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(
+        COMMANDS.deviceRecordStop,
+        expect.objectContaining({ serial: 'd4535f72' }),
+      );
+    });
+  });
+
   it('缩略图与投屏窗口使用不同的会话名，避免抢同一台设备时互相复用', async () => {
     const { api, onInvoke } = setup({ device_list: [READY_DEVICE] });
     render(<DevicesPageHarness previewEnabled api={api} previewLimit={4} />);
@@ -687,23 +710,22 @@ describe('DeviceMoreMenu', () => {
     expect(await screen.findByText(/密度 320 → 440/)).toBeInTheDocument();
   });
 
-  it('录屏先开始、再停止并展示保存路径', async () => {
+  it('从设备菜单开始/停止录屏并保存到下载目录', async () => {
     const { api, onInvoke } = setup();
     const user = userEvent.setup();
     render(<DeviceMoreMenu api={api} device={READY_DEVICE} />);
 
     await user.click(screen.getByLabelText('更多'));
-    await user.click(await screen.findByText('录屏'));
-    await user.click(await screen.findByRole('button', { name: '开始录制' }));
+    await user.click(await screen.findByText('开始录屏'));
 
     await waitFor(() => {
       expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceRecordStart, {
         serial: 'd4535f72',
       });
     });
-    expect(await screen.findByTestId('record-clock')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '停止并保存' }));
+    await user.click(screen.getByLabelText('更多'));
+    await user.click(await screen.findByText(/停止录屏/));
 
     await waitFor(() => {
       const call = onInvoke.mock.calls.find(([command]) => command === COMMANDS.deviceRecordStop);
@@ -831,6 +853,36 @@ describe('DeviceDetailPage', () => {
       );
     });
     expect(await screen.findByText(/screenshot\.png/)).toBeInTheDocument();
+  });
+
+  it('投屏栏可以开始/停止录屏，录制徽标独立于投屏状态', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(
+      <DeviceDetailPage
+        api={api}
+        device={READY_DEVICE}
+        panel={null}
+        startRequest={0}
+        onPanelChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '开始录屏' }));
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceRecordStart, {
+        serial: 'd4535f72',
+      });
+    });
+    expect(await screen.findByTestId('recording-badge')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '停止录屏' }));
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(
+        COMMANDS.deviceRecordStop,
+        expect.objectContaining({ serial: 'd4535f72' }),
+      );
+    });
   });
 
   it('startRequest 递增会自动开始投屏，不必手点', async () => {

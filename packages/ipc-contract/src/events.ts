@@ -20,6 +20,8 @@ export const EVENTS = {
   sessionStats: 'session://stats',
   /** 会话结束（正常关闭或异常断开） */
   sessionClosed: 'session://closed',
+  /** 录屏开始/停止（任一路由、任一窗口） */
+  recordingChanged: 'recording://changed',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

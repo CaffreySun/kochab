@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use adb_client::AdbClient;
 use android_core::testing::{skip_reason, temp_name};
-use android_core::{app, device, display, file, toolchain};
+use android_core::{app, device, display, file, media, toolchain};
 
 macro_rules! require_device {
     () => {
@@ -377,4 +377,25 @@ async fn 显示覆盖可读取并恢复() {
 
     let after = display::inspect(&c, &serial).await.expect("恢复后读取失败");
     assert!(!after.is_overridden(), "恢复后不应再有覆盖值");
+}
+
+#[tokio::test]
+async fn 录屏开始停止并落盘() {
+    let serial = require_device!();
+    let c = client();
+
+    let recording = media::start_recording(&c, &serial)
+        .await
+        .expect("启动录屏失败");
+    assert!(recording.started_at > 0, "开始时间应写入状态");
+
+    tokio::time::sleep(std::time::Duration::from_millis(1200)).await;
+
+    let dir = tempfile::tempdir().expect("创建临时目录失败");
+    let saved = media::stop_recording(&c, &serial, &recording, dir.path(), Some("ac-rec-e2e"))
+        .await
+        .expect("停止录屏失败");
+
+    assert!(saved.bytes > 0, "录屏文件不应为空");
+    assert!(PathBuf::from(&saved.path).is_file(), "本地文件应存在");
 }

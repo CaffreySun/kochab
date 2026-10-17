@@ -110,6 +110,7 @@ fn spawn_stale_cleanup(app: AppHandle) {
                 continue;
             }
             scrcpy_session::clean_stale_resources(&st.adb, &entry.serial).await;
+            android_core::media::clean_stale(&st.adb, &entry.serial).await;
         }
     });
 }
