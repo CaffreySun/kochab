@@ -198,6 +198,21 @@ export function useMirror(
       .then((un) => unlisteners.push(un));
 
     void api
+      .onSessionSize((payload) => {
+        if (disposed) return;
+        if (infoRef.current && payload.sessionId !== infoRef.current.sessionId) return;
+        // 旋转后画面宽高互换：布局、触摸换算、窗口比例都要跟着走
+        const next = infoRef.current
+          ? { ...infoRef.current, width: payload.width, height: payload.height }
+          : null;
+        decoderRef.current?.resize(payload.width, payload.height);
+        if (!next) return;
+        infoRef.current = next;
+        setInfo(next);
+      })
+      .then((un) => unlisteners.push(un));
+
+    void api
       .onSessionStats((next) => {
         if (disposed) return;
         setStats(next);

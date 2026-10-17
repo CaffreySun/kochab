@@ -281,18 +281,46 @@ body {
   overflow: hidden;
 }
 
-/* 画面吃掉所有剩余空间：多留一条边就少一截画面 */
+/* 横屏时面板放到画面下方：左右布局在宽扁窗口里会把画面挤成一条 */
+.ac-detail[data-orientation='landscape'] {
+  flex-direction: column;
+}
+
+/* 画面 + 竖排按钮栏。竖屏时在左侧一列，横屏时占满上方一行。 */
+.ac-detail__main {
+  display: flex;
+  flex: none;
+  flex-direction: row;
+  gap: var(--ac-space-xs);
+  min-width: 0;
+  min-height: 0;
+}
+
+.ac-detail[data-orientation='landscape'] .ac-detail__main {
+  flex: none;
+  min-height: 0;
+}
+
+/* 画面按「高度 × 宽高比」定宽（竖屏），横屏反过来按宽度定高。
+   这样拖动窗口时只有面板那一边变，画面本身不会被压歪或拉出黑边。 */
 .ac-mirror-stage {
   position: relative;
   display: flex;
-  flex: 1;
+  flex: none;
   align-items: center;
   justify-content: center;
+  height: 100%;
+  aspect-ratio: var(--ac-mirror-aspect, 9 / 16);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   background: #101114;
   border-radius: 8px;
+}
+
+.ac-detail[data-orientation='landscape'] .ac-mirror-stage {
+  width: 100%;
+  height: auto;
 }
 
 .ac-mirror-stage__canvas {
@@ -346,13 +374,19 @@ body {
   background: var(--ac-border-color);
 }
 
-/* 面板是固定宽度：窗口跟着变宽，而不是把画面压窄 */
+/* 面板吃掉剩余空间：竖屏吃宽度（在右侧），横屏吃高度（在下方） */
 .ac-detail__panel {
   display: flex;
-  flex: none;
+  flex: 1;
   flex-direction: column;
+  min-width: 240px;
   min-height: 0;
   overflow: hidden;
+}
+
+.ac-detail[data-orientation='landscape'] .ac-detail__panel {
+  min-width: 0;
+  min-height: 180px;
 }
 
 .ac-detail__panel > * {

@@ -27,10 +27,11 @@ pub use control::{
 };
 pub use error::{ProtocolError, Result};
 pub use stream::{
-    decode_device_name, encode_stream_meta, encode_video_packet, parse_session_meta,
-    parse_stream_meta, parse_video_packet, BigEndianReader, Codec, ParseError, SessionMeta,
-    StreamMeta, VideoPacket, DEVICE_NAME_FIELD_LENGTH, DEVICE_NAME_MAX_BYTES, PACKET_HEADER_LENGTH,
-    SESSION_CLIENT_RESIZE, SESSION_FLAG, SESSION_META_LENGTH, STREAM_META_LENGTH,
+    decode_device_name, encode_session_meta, encode_stream_meta, encode_video_packet,
+    is_session_meta_prefix, parse_session_meta, parse_stream_meta, parse_video_packet,
+    BigEndianReader, Codec, ParseError, SessionMeta, StreamMeta, VideoPacket, VideoStreamItem,
+    DEVICE_NAME_FIELD_LENGTH, DEVICE_NAME_MAX_BYTES, PACKET_HEADER_LENGTH, SESSION_CLIENT_RESIZE,
+    SESSION_FLAG, SESSION_META_LENGTH, SESSION_META_PREFIX, STREAM_META_LENGTH,
 };
 
 /// 本项目实现对应的 scrcpy 版本。

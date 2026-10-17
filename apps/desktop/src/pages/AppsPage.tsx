@@ -178,6 +178,8 @@ export function AppsPage({ api, device }: AppsPageProps) {
                 cell: ({ row }: { row: AppInfo }) => (
                   <div className="ac-app-cell">
                     <span className="ac-app-cell__name">
+                      {/* 设备侧不给 label（Android 10 只有 labelRes，没有已解析的名称），
+                        此时标题就是包名；不要再用副标题把同一串重复一遍 */}
                       {row.label ?? row.packageName}
                       {/* 类型并进名称行：右栏只有半个窗口宽，独立一列不划算 */}
                       <Tag
@@ -188,7 +190,9 @@ export function AppsPage({ api, device }: AppsPageProps) {
                         {row.isSystem ? '系统' : '第三方'}
                       </Tag>
                     </span>
-                    <span className="ac-app-cell__package">{row.packageName}</span>
+                    {row.label ? (
+                      <span className="ac-app-cell__package">{row.packageName}</span>
+                    ) : null}
                   </div>
                 ),
               },

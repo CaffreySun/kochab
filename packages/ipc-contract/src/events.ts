@@ -14,6 +14,8 @@ export const EVENTS = {
   sessionMeta: 'session://meta',
   /** 一段编码后的视频数据 */
   sessionVideo: 'session://video',
+  /** 画面尺寸变化（设备旋转 / 客户端 resize） */
+  sessionSize: 'session://size',
   /** 周期性统计信息 */
   sessionStats: 'session://stats',
   /** 会话结束（正常关闭或异常断开） */

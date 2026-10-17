@@ -25,6 +25,7 @@ use crate::state::{state, SessionHandle};
 /// 事件名，与 `@ac/ipc-contract` 的 `EVENTS` 一字不差。
 const EVENTS_META: &str = "session://meta";
 const EVENTS_VIDEO: &str = "session://video";
+const EVENTS_SIZE: &str = "session://size";
 const EVENTS_STATS: &str = "session://stats";
 const EVENTS_CLOSED: &str = "session://closed";
 
@@ -33,6 +34,19 @@ static SESSION_GENERATION: AtomicU64 = AtomicU64::new(1);
 
 /// 统计事件的发送间隔。
 const STATS_INTERVAL: std::time::Duration = std::time::Duration::from_secs(1);
+
+/// 会话尺寸变化事件负载。
+///
+/// 设备旋转后服务端会重新下发会话元信息，画面宽高互换；前端据此
+/// 重排画面、重设触摸坐标基准，并把窗口调成新的比例。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionSizePayload {
+    pub session_id: u32,
+    /// 新的画面宽度（设备像素）
+    pub width: u32,
+    pub height: u32,
+}
 
 /// 视频帧事件负载。
 #[derive(Debug, Clone, Serialize)]
@@ -300,10 +314,10 @@ pub async fn session_touch(
     y: i32,
 ) -> CommandResult<()> {
     let handle = session(&app, session_id)?;
-    let screen = (handle.info.width as u16, handle.info.height as u16);
+    let (width, height) = handle.screen();
     handle
         .control
-        .touch(action.into(), x, y, screen)
+        .touch(action.into(), x, y, (width as u16, height as u16))
         .await
         .map_err(Into::into)
 }
@@ -350,10 +364,10 @@ pub async fn session_scroll(
     v_scroll: f32,
 ) -> CommandResult<()> {
     let handle = session(&app, session_id)?;
-    let screen = (handle.info.width as u16, handle.info.height as u16);
+    let (width, height) = handle.screen();
     handle
         .control
-        .scroll(x, y, h_scroll, v_scroll, screen)
+        .scroll(x, y, h_scroll, v_scroll, (width as u16, height as u16))
         .await
         .map_err(Into::into)
 }
@@ -403,11 +417,25 @@ fn spawn_broadcast(app: AppHandle, handle: Arc<SessionHandle>, video: tokio::net
             let packet = tokio::select! {
                 biased;
                 _ = stop.changed() => break,
-                result = scrcpy_session::read_video_packet(&mut video) => result,
+                result = scrcpy_session::read_video_item(&mut video) => result,
             };
 
             match packet {
-                Ok(packet) => {
+                Ok(scrcpy_protocol::VideoStreamItem::Session(meta)) => {
+                    // 旋转不会重开会话，只会插一段会话元信息；尺寸必须跟着更新，
+                    // 否则触摸坐标仍按旧尺寸换算，点哪都错位。
+                    handle.set_screen(meta.width, meta.height);
+                    let payload = SessionSizePayload {
+                        session_id,
+                        width: meta.width,
+                        height: meta.height,
+                    };
+                    if let Err(e) = app.emit(EVENTS_SIZE, &payload) {
+                        tracing::debug!(error = %e, "广播画面尺寸事件失败");
+                    }
+                    continue;
+                }
+                Ok(scrcpy_protocol::VideoStreamItem::Packet(packet)) => {
                     sequence += 1;
                     handle.counters.frames.fetch_add(1, Ordering::Relaxed);
 
@@ -633,7 +661,13 @@ mod tests {
     #[test]
     fn 事件名与前端注册表一致() {
         let contract = include_str!("../../../../../packages/ipc-contract/src/events.ts");
-        for name in [EVENTS_META, EVENTS_VIDEO, EVENTS_STATS, EVENTS_CLOSED] {
+        for name in [
+            EVENTS_META,
+            EVENTS_VIDEO,
+            EVENTS_SIZE,
+            EVENTS_STATS,
+            EVENTS_CLOSED,
+        ] {
             assert!(
                 contract.contains(name),
                 "事件 {name} 未登记在 @ac/ipc-contract"

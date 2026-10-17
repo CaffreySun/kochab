@@ -10,6 +10,7 @@ import type {
   InstallResult,
   SessionClosedPayload,
   SessionInfo,
+  SessionSizePayload,
   SessionStartOptions,
   SessionStats,
   ShellOutput,
@@ -254,6 +255,9 @@ export function createApi(transport: Transport) {
 
     onSessionVideo: (handler: (frame: VideoFramePayload) => void): Promise<UnlistenFn> =>
       transport.listen<VideoFramePayload>(EVENTS.sessionVideo, handler),
+
+    onSessionSize: (handler: (payload: SessionSizePayload) => void): Promise<UnlistenFn> =>
+      transport.listen<SessionSizePayload>(EVENTS.sessionSize, handler),
 
     onSessionStats: (handler: (stats: SessionStats) => void): Promise<UnlistenFn> =>
       transport.listen<SessionStats>(EVENTS.sessionStats, handler),

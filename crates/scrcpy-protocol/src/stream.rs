@@ -168,6 +168,26 @@ pub enum VideoPacket {
     },
 }
 
+/// 视频流上的一个条目。
+///
+/// 视频 socket 上**不只有视频包**：设备旋转或客户端 `resize_display` 后，
+/// 服务端会调用 `Streamer.writeSessionMeta()` 再写一次会话尺寸。
+///
+/// 关键点：这段是**12 字节裸数据**（`flags`、`width`、`height`），
+/// **没有** 12 字节帧头。若把它当帧头解析，`height` 会被误读成 payload 长度，
+/// 之后整条流就永久错位（表现为「帧长度为负」）。
+///
+/// 判据：真实帧头的第 63 位（[`flags::SESSION`]）永远是 0
+/// （`writeFrameMeta` 只会设置 CONFIG / KEY_FRAME），而会话元信息首 4 字节
+/// 固定是 `0x8000_0000`。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VideoStreamItem {
+    /// 会话尺寸变化（设备旋转 / 客户端请求 resize）
+    Session(SessionMeta),
+    /// 一个编码包
+    Packet(VideoPacket),
+}
+
 impl VideoPacket {
     pub fn is_config(&self) -> bool {
         matches!(self, Self::Config { .. })
@@ -357,6 +377,17 @@ pub fn encode_stream_meta(meta: &StreamMeta) -> Vec<u8> {
     out.extend_from_slice(&meta.width.to_be_bytes());
     out.extend_from_slice(&meta.height.to_be_bytes());
     out
+}
+
+/// 会话元信息首 4 字节的标志位分布：`SESSION` 落在第 63 位，
+/// 写进线上字节时恰好是**高 32 位的最高位**，所以首字节固定是 `0x80`。
+pub const SESSION_META_PREFIX: u8 = 0x80;
+
+/// 判断一个 8 字节前缀是不是会话元信息（而不是帧头）。
+///
+/// 只看向最高位：帧头的 `ptsAndFlags` 里第 63 位恒为 0。
+pub fn is_session_meta_prefix(prefix: &[u8]) -> bool {
+    prefix.len() >= 8 && prefix[0] & SESSION_META_PREFIX != 0
 }
 
 /// 解析一个完整的视频包（12 字节帧头 + payload）。
@@ -577,13 +608,40 @@ mod tests {
     }
 
     #[test]
-    fn 会话元信息缺少缩放标记时为_false() {
+    fn 会话元信息缺失缩放标记时为_false() {
         let mut raw = Vec::new();
         raw.extend_from_slice(&SESSION_FLAG.to_be_bytes());
         raw.extend_from_slice(&1080u32.to_be_bytes());
         raw.extend_from_slice(&2400u32.to_be_bytes());
 
         assert!(!parse_session_meta(&raw).unwrap().client_resize);
+    }
+
+    #[test]
+    fn 会话元信息前缀与帧头可区分() {
+        // 旋转时服务端插的是 12 字节裸会话元信息，没有帧头
+        let mut meta = Vec::new();
+        meta.extend_from_slice(&SESSION_FLAG.to_be_bytes());
+        meta.extend_from_slice(&2400u32.to_be_bytes());
+        meta.extend_from_slice(&1080u32.to_be_bytes());
+        assert!(is_session_meta_prefix(&meta[..8]));
+
+        // 普通帧：pts 很小，高位全 0
+        let mut frame = Vec::new();
+        frame.extend_from_slice(&1_234_567i64.to_be_bytes());
+        frame.extend_from_slice(&2i32.to_be_bytes());
+        assert!(!is_session_meta_prefix(&frame[..8]));
+
+        // config 包（1<<62）与关键帧（1<<61）都不是会话位
+        let mut config = Vec::new();
+        config.extend_from_slice(&flags::CONFIG.to_be_bytes());
+        config.extend_from_slice(&2i32.to_be_bytes());
+        assert!(!is_session_meta_prefix(&config[..8]));
+
+        let mut key = Vec::new();
+        key.extend_from_slice(&(flags::KEY_FRAME | 1000).to_be_bytes());
+        key.extend_from_slice(&2i32.to_be_bytes());
+        assert!(!is_session_meta_prefix(&key[..8]));
     }
 
     #[test]

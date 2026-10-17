@@ -232,6 +232,14 @@ export interface VideoFramePayload {
   data: string;
 }
 
+/** 会话画面尺寸变化（设备旋转或客户端请求 resize） */
+export interface SessionSizePayload {
+  sessionId: number;
+  /** 新的画面宽度（设备像素） */
+  width: number;
+  height: number;
+}
+
 /** 周期性统计 */
 export interface SessionStats {
   sessionId: number;

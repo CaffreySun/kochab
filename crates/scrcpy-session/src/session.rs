@@ -22,7 +22,7 @@ use scrcpy_protocol::stream::{
     ParseError, DEVICE_NAME_FIELD_LENGTH, PACKET_HEADER_LENGTH, SESSION_META_LENGTH,
 };
 use scrcpy_protocol::{
-    Codec, KeyAction, KeyEvent, ScrollEvent, TouchAction, TouchEvent, VideoPacket,
+    Codec, KeyAction, KeyEvent, ScrollEvent, TouchAction, TouchEvent, VideoStreamItem,
 };
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc;
@@ -371,16 +371,16 @@ impl ScrcpySession {
     ///
     /// 需要同时交互时，先 [`control_sender`](Self::control_sender) 克隆一份句柄，
     /// 再调用本方法。
-    pub async fn pump_video(mut self) -> Result<(SessionInfo, mpsc::Receiver<VideoPacket>)> {
+    pub async fn pump_video(mut self) -> Result<(SessionInfo, mpsc::Receiver<VideoStreamItem>)> {
         let video = self.take_video()?;
         let info = self.info.clone();
         let (tx, rx) = mpsc::channel(VIDEO_QUEUE_DEPTH);
 
         tokio::spawn(async move {
             let mut video = video;
-            while let Ok(packet) = read_video_packet(&mut video).await {
+            while let Ok(item) = read_video_item(&mut video).await {
                 // 渲染端跟不上时靠通道背压自然限速
-                if tx.send(packet).await.is_err() {
+                if tx.send(item).await.is_err() {
                     break;
                 }
             }
@@ -391,10 +391,10 @@ impl ScrcpySession {
         Ok((info, rx))
     }
 
-    /// 读取下一个视频包。仅在**没有**调用 `pump_video` 时可用。
-    pub async fn next_video_packet(&mut self) -> Result<VideoPacket> {
+    /// 读取下一个视频流条目。仅在**没有**调用 `pump_video` 时可用。
+    pub async fn next_video_item(&mut self) -> Result<VideoStreamItem> {
         let stream = self.video.as_mut().ok_or(SessionError::VideoStreamClosed)?;
-        read_video_packet(stream).await
+        read_video_item(stream).await
     }
 
     /// 写一条控制消息。
@@ -497,22 +497,35 @@ fn scale_axis(value: i32, from: u16, to: u16) -> i32 {
     scaled.clamp(0, i32::from(to) - 1)
 }
 
-/// 从视频 socket 读一个完整包（12 字节帧头 + payload）。
-pub async fn read_video_packet(stream: &mut tokio::net::TcpStream) -> Result<VideoPacket> {
-    let mut header = [0u8; PACKET_HEADER_LENGTH];
-    read_exact(stream, &mut header).await?;
+/// 从视频 socket 读下一个条目：编码包，或会话尺寸变化。
+///
+/// 会话尺寸是**12 字节裸数据**，没有帧头。先用 8 字节前缀的 SESSION 位判断，
+/// 若不判断就会把 `height` 当 payload 长度，整条流从此错位。
+pub async fn read_video_item(stream: &mut tokio::net::TcpStream) -> Result<VideoStreamItem> {
+    let mut prefix = [0u8; PACKET_HEADER_LENGTH];
+    read_exact(stream, &mut prefix[..8]).await?;
+
+    if scrcpy_protocol::is_session_meta_prefix(&prefix[..8]) {
+        // 前 8 字节已经是 flags + width，只差 height
+        read_exact(stream, &mut prefix[8..]).await?;
+        let meta = scrcpy_protocol::parse_session_meta(&prefix)?;
+        return Ok(VideoStreamItem::Session(meta));
+    }
 
     // 帧头最后 4 字节是 payload 长度，必须先取出来才知道还要读多少
-    let size = i32::from_be_bytes([header[8], header[9], header[10], header[11]]);
+    read_exact(stream, &mut prefix[8..]).await?;
+    let size = i32::from_be_bytes([prefix[8], prefix[9], prefix[10], prefix[11]]);
     if size < 0 {
         return Err(SessionError::Parse(ParseError::NegativeSize(size)));
     }
 
     let mut raw = vec![0u8; PACKET_HEADER_LENGTH + size as usize];
-    raw[..PACKET_HEADER_LENGTH].copy_from_slice(&header);
+    raw[..PACKET_HEADER_LENGTH].copy_from_slice(&prefix);
     read_exact(stream, &mut raw[PACKET_HEADER_LENGTH..]).await?;
 
-    Ok(scrcpy_protocol::parse_video_packet(&raw)?)
+    Ok(VideoStreamItem::Packet(
+        scrcpy_protocol::parse_video_packet(&raw)?,
+    ))
 }
 /// 建立会话的工厂。
 ///

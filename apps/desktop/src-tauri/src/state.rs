@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::{AtomicU32, AtomicU64};
 use std::sync::Arc;
 
 use adb_client::AdbClient;
@@ -38,6 +38,10 @@ pub struct AppState {
 /// 只保留控制句柄、元信息、停止信号与计数器。
 pub struct SessionHandle {
     pub info: SessionInfo,
+    /// 当前画面尺寸。设备旋转后服务端会下发新的会话元信息，
+    /// 触摸坐标换算必须跟着换，否则点哪都错位。
+    /// 用原子量是因为广播任务写、命令层读，两边都不该等锁。
+    screen: (AtomicU32, AtomicU32),
     pub control: ControlSender,
     /// 会话本体，负责收尾（删设备端 jar、撤反向隧道）。
     /// 用 `Arc` 是因为广播任务与收尾路径都要用它。
@@ -86,6 +90,7 @@ impl SessionHandle {
             owner,
             priority,
             window_label,
+            screen: (AtomicU32::new(info.width), AtomicU32::new(info.height)),
             info,
             control,
             session,
@@ -93,6 +98,29 @@ impl SessionHandle {
             stop_tx,
             stop_rx,
         }
+    }
+
+    /// 当前画面尺寸（设备像素）。旋转后会变化。
+    pub fn screen(&self) -> (u32, u32) {
+        (
+            self.screen.0.load(std::sync::atomic::Ordering::Relaxed),
+            self.screen.1.load(std::sync::atomic::Ordering::Relaxed),
+        )
+    }
+
+    /// 记录新的画面尺寸，返回是否有变化。
+    pub fn set_screen(&self, width: u32, height: u32) -> bool {
+        let width_changed = self
+            .screen
+            .0
+            .swap(width, std::sync::atomic::Ordering::Relaxed)
+            != width;
+        let height_changed = self
+            .screen
+            .1
+            .swap(height, std::sync::atomic::Ordering::Relaxed)
+            != height;
+        width_changed || height_changed
     }
 
     /// 前端逻辑会话名。
@@ -202,7 +230,12 @@ impl AppState {
             .sessions
             .lock()
             .values()
-            .map(|s| s.info.clone())
+            .map(|s| {
+                let mut info = s.info.clone();
+                // 旋转会改变画面尺寸，列表里要给出当前值而不是建连时的值
+                (info.width, info.height) = s.screen();
+                info
+            })
             .collect();
         list.sort_by_key(|i| i.session_id);
         list

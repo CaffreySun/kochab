@@ -125,6 +125,21 @@ PACKET_FLAG_KEY_FRAME = 1L << 61
 
 ⚠️ 之前笔记里的「bit63 = CONFIG、bit62 = KEY_FRAME」是错的。
 
+### 旋转时流里会插一段裸会话元信息
+
+设备旋转或客户端 `resize_display` 后，服务端会**再写一次** `writeSessionMeta`：
+同样是 12 字节裸数据（`flags`、`width`、`height`），**没有帧头**，
+直接夹在两个正常视频包之间。
+
+- 真实帧头的 `ptsAndFlags` 第 63 位恒为 0（`writeFrameMeta` 只设 CONFIG / KEY_FRAME），
+  所以「读到 8 字节后第 63 位为 1」就说明这是会话元信息，不是帧头。
+- 若把它当帧头解析，`height` 会被误读成 payload 长度，之后整条流永久错位，
+  现象是 `帧长度为负：<垃圾值>`。
+- 本项目在 `read_video_item` 里先读 8 字节判定，命中再补 4 字节 `height`，
+  返回 `VideoStreamItem::Session`；调用方据此更新画面尺寸（触摸坐标也要换基准）。
+
+服务端依据：[`Streamer.writeSessionMeta`](https://github.com/Genymobile/scrcpy/blob/v4.1/server/src/main/java/com/genymobile/scrcpy/device/Streamer.java)。
+
 ## 4. 控制消息布局（大端）
 
 `ControlMessageReader` 用 `DataInputStream`，**默认大端**——

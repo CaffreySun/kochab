@@ -67,6 +67,21 @@ export class VideoStreamDecoder {
   }
 
   /**
+   * 更新画面尺寸。
+   *
+   * 设备旋转后编码器会重启并下发新的 SPS/PPS，但 `codedWidth/codedHeight`
+   * 是建连时的值；必须在下一个 config 包到达前更新，否则重建出来的解码器
+   * 仍按旧尺寸，画面会被拉伸或只画一角。
+   */
+  resize(width: number, height: number): void {
+    if (this.closed) return;
+    if (width <= 0 || height <= 0) return;
+    if (this.options.width === width && this.options.height === height) return;
+    this.options.width = width;
+    this.options.height = height;
+  }
+
+  /**
    * 喂一个编码包。
    *
    * config 包不会直接送去解码，而是抽出 SPS/PPS 用于构建 `description`

@@ -67,7 +67,12 @@ async fn 真机_握手并读到视频帧() {
             break;
         };
         match &packet {
-            scrcpy_protocol::VideoPacket::Config { data } => {
+            scrcpy_protocol::VideoStreamItem::Session(meta) => {
+                eprintln!("尺寸变化：{}x{}", meta.width, meta.height);
+            }
+            scrcpy_protocol::VideoStreamItem::Packet(scrcpy_protocol::VideoPacket::Config {
+                data,
+            }) => {
                 configs += 1;
                 eprintln!(
                     "config 包 {} 字节: {:02x?}",
@@ -75,11 +80,11 @@ async fn 真机_握手并读到视频帧() {
                     &data[..data.len().min(6)]
                 );
             }
-            scrcpy_protocol::VideoPacket::Frame {
+            scrcpy_protocol::VideoStreamItem::Packet(scrcpy_protocol::VideoPacket::Frame {
                 data,
                 pts_us,
                 is_key_frame,
-            } => {
+            }) => {
                 // H.264 Annex-B：帧应以 NAL 起始码开头
                 let has_start_code = data.starts_with(&[0x00, 0x00, 0x00, 0x01])
                     || data.starts_with(&[0x00, 0x00, 0x01]);
@@ -180,4 +185,106 @@ async fn 真机_同一会话_id_可重复启动() {
         .await
         .expect("同一 scid 应能重新启动");
     second.stop().await;
+}
+
+#[tokio::test]
+async fn 真机_旋转后收到新的会话尺寸() {
+    let serial = require_device!();
+    let c = client();
+
+    // 记住原始旋转设置，结束时必须还原：这个用例会改设备状态
+    let original_user = c
+        .shell(&serial, "settings get system user_rotation")
+        .await
+        .ok()
+        .and_then(|o| o.stdout.trim().parse::<u32>().ok())
+        .unwrap_or(0);
+    let original_accel = c
+        .shell(&serial, "settings get system accelerometer_rotation")
+        .await
+        .ok()
+        .and_then(|o| o.stdout.trim().parse::<u32>().ok())
+        .unwrap_or(1);
+    let target = if original_user == 1 { 0 } else { 1 };
+
+    let factory = SessionFactory::new(c.clone(), server_path());
+    let options = SessionOptions {
+        max_fps: 24,
+        max_size: 720,
+        ..SessionOptions::default()
+    };
+    let mut session = factory
+        .start("it-rotate", &serial, &options)
+        .await
+        .expect("会话应能建立");
+    let init = session.info().clone();
+    // 不用 pump_video：它拿走所有权后就没法主动停止会话，
+    // 而设备端只能有一条会话，残留会拖垮后面的用例。
+    let mut video = session.take_video().expect("应能取出视频流");
+
+    // 先收几帧，确认流已经跑热；旋转前不应出现会话尺寸包
+    for _ in 0..10 {
+        match tokio::time::timeout(
+            Duration::from_secs(5),
+            scrcpy_session::read_video_item(&mut video),
+        )
+        .await
+        {
+            Ok(Ok(scrcpy_protocol::VideoStreamItem::Packet(_))) => {}
+            Ok(Ok(scrcpy_protocol::VideoStreamItem::Session(_))) => {
+                panic!("旋转前不应收到会话尺寸包")
+            }
+            other => panic!("视频流过早结束：{other:?}"),
+        }
+    }
+
+    c.shell(&serial, "wm set-fix-to-user-rotation enabled")
+        .await
+        .expect("开启固定旋转失败");
+    c.shell(&serial, &format!("wm set-user-rotation lock {target}"))
+        .await
+        .expect("旋转设备失败");
+
+    // 旋转会重开编码器并插入一段会话元信息；这里等的就是它
+    let mut after = None;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
+    while tokio::time::Instant::now() < deadline {
+        match tokio::time::timeout_at(deadline, scrcpy_session::read_video_item(&mut video)).await {
+            Ok(Ok(scrcpy_protocol::VideoStreamItem::Session(meta))) => {
+                after = Some((meta.width, meta.height));
+                break;
+            }
+            Ok(Ok(_)) => continue,
+            _ => break,
+        }
+    }
+
+    // 无论断言是否通过，都把设备转回去并结束会话
+    let _ = c
+        .shell(
+            &serial,
+            &format!(
+                "wm set-user-rotation lock {original_user}; settings put system accelerometer_rotation {original_accel}; wm set-fix-to-user-rotation disabled"
+            ),
+        )
+        .await;
+    session.stop().await;
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    let (width, height) = after.expect("设备旋转后应收到新的会话尺寸");
+    assert!(width > 0 && height > 0, "新尺寸不应为 0");
+    assert_ne!(
+        (width, height),
+        (init.width, init.height),
+        "旋转后尺寸应当变化"
+    );
+    // 宽高应当互换（max_size 对两边等比缩放，允许 1 像素取整误差）
+    assert!(
+        width.abs_diff(init.height) <= 1 && height.abs_diff(init.width) <= 1,
+        "旋转后宽高应互换：原 {}x{}，新 {}x{}",
+        init.width,
+        init.height,
+        width,
+        height
+    );
 }

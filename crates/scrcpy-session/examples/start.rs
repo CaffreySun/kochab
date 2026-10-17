@@ -52,7 +52,12 @@ async fn main() {
 
     for index in 0..10 {
         match packets.recv().await {
-            Some(packet) => println!("包 {index}: {} 字节", packet.data().len()),
+            Some(scrcpy_session::VideoStreamItem::Session(meta)) => {
+                println!("包 {index}: 尺寸变化 {}x{}", meta.width, meta.height)
+            }
+            Some(scrcpy_session::VideoStreamItem::Packet(packet)) => {
+                println!("包 {index}: {} 字节", packet.data().len())
+            }
             None => {
                 println!("视频流结束");
                 break;

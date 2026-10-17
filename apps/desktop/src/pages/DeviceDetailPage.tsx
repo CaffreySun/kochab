@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Button, Dialog, Textarea } from 'tdesign-react';
 import type { DeviceInfo } from '@ac/ipc-contract';
 import { EmptyState } from '@ac/ui';
@@ -7,11 +8,21 @@ import { MIRROR_PRIORITY, useMirror } from '../features/mirror/useMirror';
 import { MirrorRail } from '../features/mirror/MirrorRail';
 import { MirrorStage } from '../features/mirror/MirrorStage';
 import { useMirrorOptions } from '../features/settings/mirrorOptions';
-import { PANEL_WIDTH, useDetailWindow } from '../features/window/useDetailWindow';
+import { useDetailWindow } from '../features/window/useDetailWindow';
 import type { DetailPanel } from '../windowMode';
 import { AppsPage } from './AppsPage';
 import { FilesPage } from './FilesPage';
 import { OverviewPage } from './OverviewPage';
+
+/** `1080x2160` → 宽高比；解析不出来时给出 null。 */
+function parseResolution(resolution: string | null): number | null {
+  const match = resolution?.match(/^(\d+)x(\d+)$/);
+  if (!match) return null;
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+  return width / height;
+}
 
 export interface DeviceDetailPageProps {
   api: Api | null;
@@ -65,7 +76,13 @@ export function DeviceDetailPage({
   const [textOpen, setTextOpen] = useState(false);
   const [draftText, setDraftText] = useState('');
 
-  useDetailWindow(device, panel !== null);
+  // 设备旋转后画面尺寸会变，窗口比例必须跟着换，否则横屏画面被塞进竖屏窗口
+  const liveResolution = mirror.info ? `${mirror.info.width}x${mirror.info.height}` : null;
+  const aspect = mirror.info
+    ? mirror.info.width / mirror.info.height
+    : (parseResolution(device?.screenResolution ?? null) ?? 9 / 16);
+
+  useDetailWindow(device, panel !== null, liveResolution);
 
   const { start, status } = mirror;
   const startRef = useRef(start);
@@ -97,31 +114,38 @@ export function DeviceDetailPage({
   const streaming = status === 'streaming';
 
   return (
-    <div className="ac-detail">
-      <MirrorStage
-        error={mirror.error}
-        info={mirror.info}
-        sendTouch={mirror.sendTouch}
-        setCanvas={setCanvas}
-        stats={mirror.stats}
-        status={status}
-        onStart={() => void mirror.start()}
-      />
+    <div
+      className="ac-detail"
+      data-orientation={aspect > 1 ? 'landscape' : 'portrait'}
+      style={{ '--ac-mirror-aspect': aspect } as CSSProperties}
+    >
+      {/* 画面与竖排按钮栏始终在一起：横屏时这一组在上、面板在下 */}
+      <div className="ac-detail__main">
+        <MirrorStage
+          error={mirror.error}
+          info={mirror.info}
+          sendTouch={mirror.sendTouch}
+          setCanvas={setCanvas}
+          stats={mirror.stats}
+          status={status}
+          onStart={() => void mirror.start()}
+        />
 
-      <MirrorRail
-        panel={panel}
-        status={status}
-        onKey={onKey}
-        onOpenText={() => setTextOpen(true)}
-        onRestart={() => {
-          void mirror.stop().then(() => mirror.start());
-        }}
-        onStop={() => void mirror.stop()}
-        onTogglePanel={(next) => onPanelChange(panel === next ? null : next)}
-      />
+        <MirrorRail
+          panel={panel}
+          status={status}
+          onKey={onKey}
+          onOpenText={() => setTextOpen(true)}
+          onRestart={() => {
+            void mirror.stop().then(() => mirror.start());
+          }}
+          onStop={() => void mirror.stop()}
+          onTogglePanel={(next) => onPanelChange(panel === next ? null : next)}
+        />
+      </div>
 
       {panel ? (
-        <section className="ac-detail__panel" style={{ width: PANEL_WIDTH }}>
+        <section className="ac-detail__panel">
           {panel === 'apps' ? <AppsPage api={api} device={device} /> : null}
           {panel === 'files' ? <FilesPage api={api} device={device} /> : null}
           {panel === 'overview' ? <OverviewPage api={api} device={device} /> : null}
