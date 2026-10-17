@@ -25,6 +25,8 @@ pub struct AppState {
     pub devices: Arc<RwLock<HashMap<String, DeviceInfo>>>,
     /// 活跃的投屏会话。
     pub sessions: Arc<Mutex<HashMap<u32, Arc<SessionHandle>>>>,
+    /// 设备端正在进行的录屏。每台设备最多一条，停止时取走。
+    pub recordings: Arc<Mutex<HashMap<String, android_core::Recording>>>,
     /// 应用自带资源的目录（打包后是资源目录）。
     ///
     /// `scrcpy-server` 随应用分发，位置与 adb 安装目录无关，
@@ -159,6 +161,7 @@ impl AppState {
             adb,
             devices: Arc::new(RwLock::new(HashMap::new())),
             sessions: Arc::new(Mutex::new(HashMap::new())),
+            recordings: Arc::new(Mutex::new(HashMap::new())),
             resource_dir,
         }
     }

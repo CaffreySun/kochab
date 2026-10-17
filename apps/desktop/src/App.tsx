@@ -165,7 +165,7 @@ function ShellContent({
   const { tasks } = useTasks();
   const running = tasks.filter((task) => task.status === 'running').length;
   const shellView: ShellView = route.kind;
-  const title = route.kind === 'settings' ? '设置' : route.kind === 'tasks' ? '任务' : '设备';
+  const title = route.kind === 'settings' ? '设置' : route.kind === 'tasks' ? '批量记录' : '设备';
 
   return (
     <AppShell

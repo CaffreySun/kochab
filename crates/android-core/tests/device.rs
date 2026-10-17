@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use adb_client::AdbClient;
 use android_core::testing::{skip_reason, temp_name};
-use android_core::{app, device, file, toolchain};
+use android_core::{app, device, display, file, toolchain};
 
 macro_rules! require_device {
     () => {
@@ -312,4 +312,69 @@ async fn 重命名文件() {
     );
 
     file::delete(&c, &serial, &target).await.expect("清理失败");
+}
+
+#[tokio::test]
+async fn 递归下载目录保留结构与内容() {
+    let serial = require_device!();
+    let c = client();
+
+    let name = temp_name("pulldir");
+    let remote = format!("/sdcard/Download/{name}");
+    let remote_sub = format!("{remote}/sub");
+    file::create_dir(&c, &serial, &remote_sub)
+        .await
+        .expect("创建远端目录失败");
+
+    let dir = tempfile::tempdir().expect("创建临时目录失败");
+    let local_a = dir.path().join("a.txt");
+    let local_b = dir.path().join("b.txt");
+    std::fs::write(&local_a, b"alpha").unwrap();
+    std::fs::write(&local_b, b"beta").unwrap();
+    file::push(&c, &serial, &local_a, &format!("{remote}/a.txt"))
+        .await
+        .expect("上传 a 失败");
+    file::push(&c, &serial, &local_b, &format!("{remote_sub}/b.txt"))
+        .await
+        .expect("上传 b 失败");
+
+    let download = tempfile::tempdir().expect("创建下载目录失败");
+    let (target, bytes) = file::pull_dir(&c, &serial, &remote, download.path())
+        .await
+        .expect("递归下载失败");
+
+    assert_eq!(target.file_name().unwrap(), name.as_str());
+    assert_eq!(std::fs::read(target.join("a.txt")).unwrap(), b"alpha");
+    assert_eq!(std::fs::read(target.join("sub/b.txt")).unwrap(), b"beta");
+    assert_eq!(bytes, 9, "总字节数应为两个文件之和");
+
+    file::delete_recursive(&c, &serial, &remote)
+        .await
+        .expect("清理远端目录失败");
+}
+
+#[tokio::test]
+async fn 显示覆盖可读取并恢复() {
+    let serial = require_device!();
+    let c = client();
+
+    // 先制造一个确定可识别的覆盖，测完必须恢复
+    c.shell(&serial, "wm size 720x1440")
+        .await
+        .expect("设置覆盖尺寸失败");
+    c.shell(&serial, "wm density 320")
+        .await
+        .expect("设置覆盖密度失败");
+
+    let overridden = display::inspect(&c, &serial)
+        .await
+        .expect("读取显示状态失败");
+    assert_eq!(overridden.override_size.as_deref(), Some("720x1440"));
+    assert_eq!(overridden.override_density.as_deref(), Some("320"));
+
+    let result = display::reset(&c, &serial).await.expect("恢复显示失败");
+    assert!(result.overridden);
+
+    let after = display::inspect(&c, &serial).await.expect("恢复后读取失败");
+    assert!(!after.is_overridden(), "恢复后不应再有覆盖值");
 }

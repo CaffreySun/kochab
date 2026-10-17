@@ -3,11 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type React from 'react';
 import { COMMANDS, type DeviceInfo, type SessionInfo } from '@ac/ipc-contract';
+import { KEYCODE_BACK } from '@ac/scrcpy-web';
 import { createApi } from '../ipc';
 import { createMockTransport } from '../ipc/mock';
 import { AppsPage } from './AppsPage';
 import { DevicesPage } from './DevicesPage';
 import { DeviceDetailPage } from './DeviceDetailPage';
+import { OverviewPage } from './OverviewPage';
 import { SettingsPage } from './SettingsPage';
 import { DeviceMoreMenu } from '../features/devices/DeviceMoreMenu';
 import { TasksProvider } from '../features/tasks/TasksProvider';
@@ -59,8 +61,20 @@ describe('AppsPage', () => {
     const { api } = setup();
     render(<AppsPage api={api} device={READY_DEVICE} />);
 
-    expect(await screen.findByText('com.android.settings')).toBeInTheDocument();
-    expect(screen.getByText('com.example.notes')).toBeInTheDocument();
+    expect(await screen.findByText(/com\.android\.settings/)).toBeInTheDocument();
+    expect(screen.getByText(/com\.example\.notes/)).toBeInTheDocument();
+  });
+
+  it('点击应用行打开详情，展示版本与安装时间', async () => {
+    const { api } = setup();
+    const user = userEvent.setup();
+    render(<AppsPage api={api} device={READY_DEVICE} />);
+
+    await user.click(await screen.findByRole('button', { name: /com\.example\.notes/ }));
+
+    expect(await screen.findByText('应用详情')).toBeInTheDocument();
+    expect(await screen.findByText(/2\.4\.1（20401）/)).toBeInTheDocument();
+    expect(screen.getByText(/2024\/9\/10/)).toBeInTheDocument();
   });
 
   it('关键字可以过滤列表', async () => {
@@ -68,13 +82,13 @@ describe('AppsPage', () => {
     const user = userEvent.setup();
     render(<AppsPage api={api} device={READY_DEVICE} />);
 
-    await screen.findByText('com.android.settings');
+    await screen.findByText(/com\.android\.settings/);
     await user.type(screen.getByPlaceholderText('搜索包名或应用名'), 'notes');
 
     await waitFor(() => {
-      expect(screen.queryByText('com.android.settings')).not.toBeInTheDocument();
+      expect(screen.queryByText(/com\.android\.settings/)).not.toBeInTheDocument();
     });
-    expect(screen.getByText('com.example.notes')).toBeInTheDocument();
+    expect(screen.getByText(/com\.example\.notes/)).toBeInTheDocument();
   });
 
   it('系统应用不可卸载：点击不会下发 app_uninstall', async () => {
@@ -82,7 +96,7 @@ describe('AppsPage', () => {
     const user = userEvent.setup();
     render(<AppsPage api={api} device={READY_DEVICE} />);
 
-    const row = (await screen.findByText('com.android.settings')).closest('tr');
+    const row = (await screen.findByText(/com\.android\.settings/)).closest('tr');
     expect(row).not.toBeNull();
     await user.click(within(row as HTMLElement).getByText('卸载'));
 
@@ -92,17 +106,46 @@ describe('AppsPage', () => {
     );
   });
 
-  it('第三方应用卸载会下发 app_uninstall', async () => {
+  it('第三方应用卸载需要确认后才下发 app_uninstall', async () => {
     const { api, onInvoke } = setup();
     const user = userEvent.setup();
     render(<AppsPage api={api} device={READY_DEVICE} />);
 
-    const row = (await screen.findByText('com.example.notes')).closest('tr');
+    const row = (await screen.findByText(/com\.example\.notes/)).closest('tr');
     await user.click(within(row as HTMLElement).getByRole('button', { name: '卸载' }));
+
+    // 确认弹层出现前不执行卸载
+    expect(onInvoke).not.toHaveBeenCalledWith(
+      COMMANDS.appUninstall,
+      expect.objectContaining({ packageName: 'com.example.notes' }),
+    );
+    // 弹层挂在 body 末尾，同名按钮里最后一个是对话框的确认键
+    const confirmButtons = await screen.findAllByRole('button', { name: '卸载' });
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
 
     await waitFor(() => {
       expect(onInvoke).toHaveBeenCalledWith(
         COMMANDS.appUninstall,
+        expect.objectContaining({ packageName: 'com.example.notes' }),
+      );
+    });
+  });
+
+  it('清除数据同样需要确认', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<AppsPage api={api} device={READY_DEVICE} />);
+
+    const row = (await screen.findByText(/com\.example\.notes/)).closest('tr');
+    await user.click(within(row as HTMLElement).getByRole('button', { name: '清除数据' }));
+
+    expect(onInvoke).not.toHaveBeenCalledWith(COMMANDS.appClearData, expect.anything());
+    const confirmButtons = await screen.findAllByRole('button', { name: '清除数据' });
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(
+        COMMANDS.appClearData,
         expect.objectContaining({ packageName: 'com.example.notes' }),
       );
     });
@@ -113,7 +156,7 @@ describe('AppsPage', () => {
     const user = userEvent.setup();
     render(<AppsPage api={api} device={READY_DEVICE} />);
 
-    const row = (await screen.findByText('com.example.notes')).closest('tr');
+    const row = (await screen.findByText(/com\.example\.notes/)).closest('tr');
     await user.click(within(row as HTMLElement).getByRole('button', { name: '启动' }));
 
     await waitFor(() => {
@@ -138,7 +181,7 @@ describe('AppsPage', () => {
     const user = userEvent.setup();
     render(<AppsPage api={api} device={READY_DEVICE} />);
 
-    const row = (await screen.findByText('com.example.notes')).closest('tr');
+    const row = (await screen.findByText(/com\.example\.notes/)).closest('tr');
     await user.click(within(row as HTMLElement).getByRole('button', { name: '导出' }));
 
     await waitFor(() => {
@@ -197,6 +240,75 @@ describe('FilesPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('路径不存在');
   });
+
+  it('多选后可以批量下载：目录递归、文件直传', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<FilesPage api={api} device={READY_DEVICE} />);
+
+    const dirRow = (await screen.findByRole('button', { name: /📁 Download/ })).closest('tr')!;
+    const fileRow = (await screen.findByRole('button', { name: /📄 note\.txt/ })).closest('tr')!;
+    await user.click(within(dirRow).getByRole('checkbox'));
+    await user.click(within(fileRow).getByRole('checkbox'));
+
+    await user.click(screen.getByRole('button', { name: /下载所选（2）/ }));
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.filePullDir, {
+        serial: 'd4535f72',
+        remotePath: '/sdcard/Download',
+        destDir: '/tmp/out',
+      });
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.filePull, {
+        serial: 'd4535f72',
+        remotePath: '/sdcard/note.txt',
+        localPath: '/tmp/out/note.txt',
+      });
+    });
+  });
+
+  it('删除前必须确认，确认后才下发 file_delete', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<FilesPage api={api} device={READY_DEVICE} />);
+
+    const fileRow = (await screen.findByText(/note\.txt/)).closest('tr')!;
+    await user.click(within(fileRow).getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: /删除所选（1）/ }));
+
+    expect(onInvoke).not.toHaveBeenCalledWith(COMMANDS.fileDelete, expect.anything());
+
+    // 弹层挂在 body 末尾，同名按钮里最后一个是确认键
+    const confirmButtons = await screen.findAllByRole('button', { name: '删除' });
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.fileDelete, {
+        serial: 'd4535f72',
+        path: '/sdcard/note.txt',
+      });
+    });
+  });
+
+  it('可以直接编辑路径跳转', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<FilesPage api={api} device={READY_DEVICE} />);
+
+    await screen.findByText(/note\.txt/);
+    await user.click(screen.getByRole('button', { name: '编辑路径' }));
+
+    const input = screen.getByDisplayValue('/sdcard');
+    await user.clear(input);
+    await user.type(input, '/sdcard/DCIM{Enter}');
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.fileList, {
+        serial: 'd4535f72',
+        path: '/sdcard/DCIM',
+      });
+    });
+  });
 });
 
 describe('DevicesPage（多设备）', () => {
@@ -223,6 +335,28 @@ describe('DevicesPage（多设备）', () => {
   it('为每台设备渲染一张卡片', async () => {
     renderPage({ device_list: [READY_DEVICE, second] });
     expect(await screen.findAllByTestId('device-card')).toHaveLength(2);
+  });
+
+  it('连接设备在对话框里完成并记住地址', async () => {
+    window.localStorage.clear();
+    const user = userEvent.setup();
+    const { onInvoke } = renderPage({ device_list: [READY_DEVICE] });
+
+    await user.click(await screen.findByRole('button', { name: '连接设备' }));
+    await user.type(await screen.findByPlaceholderText('192.168.1.10:5555'), '192.168.1.50:5555');
+    const connectButtons = await screen.findAllByRole('button', { name: '连接' });
+    await user.click(connectButtons[connectButtons.length - 1]!);
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceConnectWireless, {
+        address: '192.168.1.50:5555',
+      });
+    });
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem('ac.recentAddresses') ?? '[]')).toContain(
+        '192.168.1.50:5555',
+      );
+    });
   });
 
   it('卡片操作栏为每台设备各开一个独立窗口', async () => {
@@ -257,6 +391,51 @@ describe('DevicesPage（多设备）', () => {
     await user.click(within(cards[0]!).getByRole('checkbox'));
 
     expect(await screen.findByText('取消选择')).toBeInTheDocument();
+  });
+
+  it('全选与取消全选只作用于当前可见的就绪设备', async () => {
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE, second] });
+
+    await user.click(await screen.findByRole('button', { name: '全选' }));
+    expect(await screen.findByText('已选 2 台')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '取消全选' }));
+    expect(await screen.findByText('已选 0 台')).toBeInTheDocument();
+  });
+
+  it('设备可以自定义名称并持久化展示', async () => {
+    window.localStorage.clear();
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE] });
+
+    const card = (await screen.findAllByTestId('device-card'))[0]!;
+    await user.click(within(card).getByRole('button', { name: '更多' }));
+    await user.click(await screen.findByText('重命名设备'));
+
+    await user.type(screen.getByPlaceholderText('MIX 2S'), '我的测试机');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    expect(await screen.findByText('我的测试机')).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem('ac.devicePrefs') ?? '{}')).toMatchObject({
+      aliases: { d4535f72: '我的测试机' },
+    });
+  });
+
+  it('置顶设备会移到列表最前', async () => {
+    window.localStorage.clear();
+    const user = userEvent.setup();
+    renderPage({ device_list: [READY_DEVICE, second] });
+
+    const cards = await screen.findAllByTestId('device-card');
+    await user.click(within(cards[1]!).getByRole('button', { name: '更多' }));
+    await user.click(await screen.findByText('置顶'));
+
+    const after = await screen.findAllByTestId('device-card');
+    expect(within(after[0]!).getByText('emulator-5554')).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem('ac.devicePrefs') ?? '{}')).toMatchObject({
+      pinned: ['emulator-5554'],
+    });
   });
 
   it('缩略图与投屏窗口使用不同的会话名，避免抢同一台设备时互相复用', async () => {
@@ -404,26 +583,136 @@ describe('DeviceMoreMenu', () => {
     });
   });
 
-  // 回归：命令写成 `ip -4 route show wlan0` 会被 Android 的 iproute2 拒绝，
-  // 于是手机明明连着 Wi-Fi 也报「读不到 Wi-Fi 地址」。
-  it('无线连接能读出 wlan0 的 IPv4 地址', async () => {
-    const { api } = setup({
-      shell_exec: () => ({
-        command: 'ip -4 addr show wlan0',
-        exitCode: 0,
-        stdout:
-          '30: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP\n' +
-          '    inet 192.168.1.158/24 brd 192.168.1.255 scope global wlan0\n',
-        timedOut: false,
-      }),
+  it('快捷命令会填入输入框并记录到历史', async () => {
+    window.localStorage.clear();
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<DeviceMoreMenu api={api} device={READY_DEVICE} />);
+
+    await user.click(screen.getByLabelText('更多'));
+    await user.click(await screen.findByText('命令行'));
+    await user.click(await screen.findByRole('button', { name: '电池' }));
+
+    const input = await screen.findByPlaceholderText('例如：dumpsys battery');
+    expect(input).toHaveValue('dumpsys battery');
+
+    await user.click(screen.getByRole('button', { name: '执行' }));
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.shellExec, {
+        serial: 'd4535f72',
+        command: 'dumpsys battery',
+      });
+    });
+    expect(JSON.parse(window.localStorage.getItem('ac.shellHistory') ?? '[]')).toEqual([
+      'dumpsys battery',
+    ]);
+  });
+
+  // 无线调试不是「读出地址让用户自己连」：后端要 tcpip + connect，
+  // 否则用户还得去别处执行 adb tcpip。
+  it('无线调试调用后端切换并提示连接地址', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<DeviceMoreMenu api={api} device={READY_DEVICE} />);
+
+    await user.click(screen.getByLabelText('更多'));
+    await user.click(await screen.findByText('无线调试'));
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceWifiEnable, {
+        serial: 'd4535f72',
+      });
+    });
+    expect(await screen.findByText(/192\.168\.1\.158:5555/)).toBeInTheDocument();
+  });
+
+  it('无线设备可以从菜单切回 USB 模式', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<DeviceMoreMenu api={api} device={{ ...READY_DEVICE, transport: 'wifi' }} />);
+
+    await user.click(screen.getByLabelText('更多'));
+    await user.click(await screen.findByText('关闭无线端口'));
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceWifiDisable, {
+        serial: 'd4535f72',
+      });
+    });
+    expect(await screen.findByText('已切回 USB 模式并断开无线连接')).toBeInTheDocument();
+  });
+
+  it('截屏落盘后把路径反馈给用户', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<DeviceMoreMenu api={api} device={READY_DEVICE} />);
+
+    await user.click(screen.getByLabelText('更多'));
+    await user.click(await screen.findByText('截屏'));
+
+    await waitFor(() => {
+      const call = onInvoke.mock.calls.find(([command]) => command === COMMANDS.deviceScreenshot);
+      expect(call).toBeDefined();
+      const payload = call?.[1] as { serial: string; suggestedName: string };
+      expect(payload.serial).toBe('d4535f72');
+      expect(payload.suggestedName).toMatch(/^截屏_\d{8}_\d{6}$/);
+    });
+    expect(await screen.findByText(/screenshot\.png/)).toBeInTheDocument();
+  });
+
+  it('恢复分辨率展示后端实际恢复的内容', async () => {
+    const { api, onInvoke } = setup({
+      device_reset_display: {
+        overridden: true,
+        before: {
+          physicalSize: '1080x2160',
+          physicalDensity: '440',
+          overrideSize: '720x1440',
+          overrideDensity: '320',
+        },
+        message: '已恢复屏幕：720x1440 → 1080x2160；密度 320 → 440',
+      },
     });
     const user = userEvent.setup();
     render(<DeviceMoreMenu api={api} device={READY_DEVICE} />);
 
     await user.click(screen.getByLabelText('更多'));
-    await user.click(await screen.findByText('无线连接'));
+    await user.click(await screen.findByText('恢复分辨率'));
 
-    expect(await screen.findByText(/192\.168\.1\.158:5555/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceResetDisplay, {
+        serial: 'd4535f72',
+      });
+    });
+    expect(await screen.findByText(/密度 320 → 440/)).toBeInTheDocument();
+  });
+
+  it('录屏先开始、再停止并展示保存路径', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(<DeviceMoreMenu api={api} device={READY_DEVICE} />);
+
+    await user.click(screen.getByLabelText('更多'));
+    await user.click(await screen.findByText('录屏'));
+    await user.click(await screen.findByRole('button', { name: '开始录制' }));
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceRecordStart, {
+        serial: 'd4535f72',
+      });
+    });
+    expect(await screen.findByTestId('record-clock')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '停止并保存' }));
+
+    await waitFor(() => {
+      const call = onInvoke.mock.calls.find(([command]) => command === COMMANDS.deviceRecordStop);
+      expect(call).toBeDefined();
+      const payload = call?.[1] as { serial: string; suggestedName: string };
+      expect(payload.serial).toBe('d4535f72');
+      expect(payload.suggestedName).toMatch(/^录屏_\d{8}_\d{6}$/);
+    });
+    expect(await screen.findByText(/recording\.mp4/)).toBeInTheDocument();
   });
 });
 
@@ -520,6 +809,30 @@ describe('DeviceDetailPage', () => {
     expect(document.querySelector('.ac-detail__panel')).toBeNull();
   });
 
+  it('竖排栏的截屏按钮直接保存到下载目录', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(
+      <DeviceDetailPage
+        api={api}
+        device={READY_DEVICE}
+        panel={null}
+        startRequest={0}
+        onPanelChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '截屏' }));
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(
+        COMMANDS.deviceScreenshot,
+        expect.objectContaining({ serial: 'd4535f72' }),
+      );
+    });
+    expect(await screen.findByText(/screenshot\.png/)).toBeInTheDocument();
+  });
+
   it('startRequest 递增会自动开始投屏，不必手点', async () => {
     const { api, onInvoke } = setup();
     render(
@@ -588,6 +901,36 @@ describe('DeviceDetailPage', () => {
     expect(onInvoke).not.toHaveBeenCalledWith(COMMANDS.sessionKey, expect.anything());
   });
 
+  it('投屏中按键先按下再抬起（返回 / 主页 / 多任务只在抬起时生效）', async () => {
+    const { api, onInvoke } = setup();
+    const user = userEvent.setup();
+    render(
+      <DeviceDetailPage
+        api={api}
+        device={READY_DEVICE}
+        panel={null}
+        startRequest={1}
+        onPanelChange={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mirror-status')).toHaveTextContent('投屏中');
+    });
+
+    await user.click(screen.getByLabelText('返回键'));
+
+    await waitFor(() => {
+      const keys = onInvoke.mock.calls
+        .filter(([command]) => command === COMMANDS.sessionKey)
+        .map(([, args]) => args as { keycode: number; pressed: boolean });
+      expect(keys.map(({ keycode, pressed }) => ({ keycode, pressed }))).toEqual([
+        { keycode: KEYCODE_BACK, pressed: true },
+        { keycode: KEYCODE_BACK, pressed: false },
+      ]);
+    });
+  });
+
   it('设备消失时给出提示而不是崩溃', () => {
     renderDetail({ device: null });
 
@@ -595,6 +938,43 @@ describe('DeviceDetailPage', () => {
     expect(screen.queryByTestId('mirror-stage')).not.toBeInTheDocument();
   });
 });
+describe('OverviewPage', () => {
+  it('显示被覆盖的尺寸/density 并可一键恢复', async () => {
+    const { api, onInvoke } = setup({
+      device_display: {
+        physicalSize: '1080x2160',
+        physicalDensity: '440',
+        overrideSize: '720x1440',
+        overrideDensity: '320',
+      },
+      device_reset_display: {
+        overridden: true,
+        before: {
+          physicalSize: '1080x2160',
+          physicalDensity: '440',
+          overrideSize: '720x1440',
+          overrideDensity: '320',
+        },
+        message: '已恢复屏幕：720x1440 → 1080x2160；密度 320 → 440',
+      },
+    });
+    const user = userEvent.setup();
+    render(<OverviewPage api={api} device={READY_DEVICE} />);
+
+    expect(await screen.findByText('720x1440')).toBeInTheDocument();
+    expect(screen.getByText('已被覆盖')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '恢复默认' }));
+
+    await waitFor(() => {
+      expect(onInvoke).toHaveBeenCalledWith(COMMANDS.deviceResetDisplay, {
+        serial: 'd4535f72',
+      });
+    });
+    expect(await screen.findByText(/已恢复屏幕/)).toBeInTheDocument();
+  });
+});
+
 describe('SettingsPage', () => {
   const renderSettings = (props: Partial<React.ComponentProps<typeof SettingsPage>> = {}) =>
     render(
@@ -636,6 +1016,18 @@ describe('SettingsPage', () => {
       false,
       false,
     ]);
+  });
+
+  it('画质预设会一次性更新分辨率、帧率与码率', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    renderSettings({ onMirrorOptionsChange: onChange });
+
+    await user.click(screen.getByRole('button', { name: '流畅' }));
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ maxSize: 720, maxFps: 30, bitRate: 4 }),
+    );
   });
 
   it('修改分辨率上限会回传新设置', async () => {

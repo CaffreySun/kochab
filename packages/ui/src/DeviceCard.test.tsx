@@ -48,6 +48,22 @@ describe('DeviceCard', () => {
     expect(screen.queryByText('已连接')).not.toBeInTheDocument();
   });
 
+  it('默认显示机型，序列号作为副标题', () => {
+    renderCard();
+
+    const identity = screen.getByTestId('device-select');
+    expect(identity).toHaveTextContent('MIX 2S');
+    expect(identity).toHaveTextContent('d4535f72');
+  });
+
+  it('自定义名称优先于序列号，序列号仍保留在 tooltip 里', () => {
+    renderCard({ name: '测试机 A' });
+
+    const identity = screen.getByTestId('device-select');
+    expect(identity).toHaveTextContent('测试机 A');
+    expect(identity).toHaveAttribute('title', 'd4535f72 · Xiaomi MIX 2S');
+  });
+
   it('点序列号或缩略图都会打开详情', async () => {
     const onOpen = vi.fn();
     const user = userEvent.setup();

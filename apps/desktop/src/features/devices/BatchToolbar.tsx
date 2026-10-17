@@ -2,8 +2,6 @@ import { Button, Space } from 'tdesign-react';
 import type { Api } from '../../ipc';
 import { useTasks } from '../tasks/TasksProvider';
 
-/** 恢复被开发者选项改过的屏幕尺寸。 */
-const RESET_RESOLUTION = 'wm size reset';
 /** 重启设备。 */
 const REBOOT = 'reboot';
 
@@ -47,6 +45,15 @@ export function BatchToolbar({
     if (command === REBOOT) onDeviceListStale?.();
   };
 
+  /** 恢复尺寸与 density 必须由后端各读一次现状，不能拼成一条 shell。 */
+  const runDisplayReset = async () => {
+    if (!api) return;
+    await submit('恢复分辨率', selected, async (serial) => {
+      const result = await api.resetDisplay(serial);
+      return result.message;
+    });
+  };
+
   return (
     <div className="ac-batch">
       <Space breakLine size="small">
@@ -63,7 +70,7 @@ export function BatchToolbar({
           disabled={busy}
           size="small"
           variant="outline"
-          onClick={() => void runShell('恢复分辨率', RESET_RESOLUTION)}
+          onClick={() => void runDisplayReset()}
         >
           恢复分辨率
         </Button>

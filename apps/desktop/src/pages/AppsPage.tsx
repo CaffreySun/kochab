@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Input, Loading, MessagePlugin, Space, Switch, Table, Tag } from 'tdesign-react';
+import {
+  Button,
+  Dialog,
+  Input,
+  Loading,
+  MessagePlugin,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tag,
+} from 'tdesign-react';
 import { open } from '@tauri-apps/plugin-dialog';
 import type { AppInfo, DeviceInfo } from '@ac/ipc-contract';
 import { EmptyState } from '@ac/ui';
@@ -12,6 +23,36 @@ export interface AppsPageProps {
 }
 
 type Status = 'idle' | 'loading' | 'ready' | 'error';
+type SortKey = 'name' | 'updated' | 'size';
+
+const SORT_OPTIONS: Array<{ label: string; value: SortKey }> = [
+  { label: '名称', value: 'name' },
+  { label: '最近更新', value: 'updated' },
+  { label: '占用大小', value: 'size' },
+];
+
+function formatBytes(bytes: number | null): string {
+  if (bytes === null || bytes <= 0) return '—';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
+
+function formatDate(ms: number | null): string {
+  return ms === null ? '—' : new Date(ms).toLocaleString();
+}
+
+/** 首字母头像：没有图标来源时不引外部服务，用稳定的色相区分应用。 */
+function avatarColor(name: string): string {
+  let hash = 0;
+  for (const ch of name) hash = (hash * 31 + ch.codePointAt(0)!) % 360;
+  return `hsl(${hash} 45% 48%)`;
+}
 
 /** 应用管理页：列出、搜索、启动/停止、安装/卸载/清除数据。 */
 export function AppsPage({ api, device }: AppsPageProps) {
@@ -23,6 +64,12 @@ export function AppsPage({ api, device }: AppsPageProps) {
   const [keyword, setKeyword] = useState('');
   const [showSystem, setShowSystem] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [detail, setDetail] = useState<AppInfo | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [pending, setPending] = useState<{ kind: 'uninstall' | 'clear'; app: AppInfo } | null>(
+    null,
+  );
 
   const refresh = useCallback(async () => {
     if (!api || !serial) return;
@@ -63,6 +110,24 @@ export function AppsPage({ api, device }: AppsPageProps) {
     [],
   );
 
+  /** 卸载与清除数据都会丢数据，先确认再执行。 */
+  const confirmPending = useCallback(async () => {
+    const target = pending;
+    setPending(null);
+    if (!api || !serial || !target) return;
+    const { app } = target;
+    if (target.kind === 'uninstall') {
+      await run(app.packageName, '卸载', async () => {
+        await api.uninstallApp(serial, app.packageName);
+        await refresh();
+      });
+    } else {
+      await run(app.packageName, '清除数据', async () => {
+        await api.clearAppData(serial, app.packageName);
+      });
+    }
+  }, [api, serial, pending, run, refresh]);
+
   const installApk = useCallback(async () => {
     if (!api || !serial) return;
     const picked = await open({
@@ -76,6 +141,23 @@ export function AppsPage({ api, device }: AppsPageProps) {
       await refresh();
     });
   }, [api, serial, run, refresh]);
+
+  /** 列表里的 AppInfo 已是完整行；仍再取一次详情，保证后续版本/权限字段最新。 */
+  const openDetails = useCallback(
+    async (row: AppInfo) => {
+      setDetail(row);
+      if (!api || !serial) return;
+      setDetailLoading(true);
+      try {
+        setDetail(await api.appDetails(serial, row.packageName));
+      } catch {
+        // 详情失败时保留列表里的行数据，至少能看到基础信息
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [api, serial],
+  );
 
   /**
    * 把应用导出到本机的「下载」目录。
@@ -106,13 +188,23 @@ export function AppsPage({ api, device }: AppsPageProps) {
 
   const visible = useMemo(() => {
     const needle = keyword.trim().toLowerCase();
-    if (!needle) return apps;
-    return apps.filter(
-      (app) =>
-        app.packageName.toLowerCase().includes(needle) ||
-        (app.label ?? '').toLowerCase().includes(needle),
-    );
-  }, [apps, keyword]);
+    const filtered = needle
+      ? apps.filter(
+          (app) =>
+            app.packageName.toLowerCase().includes(needle) ||
+            (app.label ?? '').toLowerCase().includes(needle),
+        )
+      : apps;
+    return [...filtered].sort((a, b) => {
+      if (sortKey === 'updated') {
+        return (b.lastUpdateTime ?? 0) - (a.lastUpdateTime ?? 0);
+      }
+      if (sortKey === 'size') {
+        return (b.apkSizeBytes ?? 0) - (a.apkSizeBytes ?? 0);
+      }
+      return (a.label ?? a.packageName).localeCompare(b.label ?? b.packageName, 'zh-CN');
+    });
+  }, [apps, keyword, sortKey]);
 
   if (!device) {
     return (
@@ -150,6 +242,13 @@ export function AppsPage({ api, device }: AppsPageProps) {
           <Button size="small" theme="primary" onClick={() => void installApk()}>
             安装 APK
           </Button>
+          <Select
+            options={SORT_OPTIONS}
+            size="small"
+            style={{ width: 120 }}
+            value={sortKey}
+            onChange={(value) => setSortKey(value as SortKey)}
+          />
           <Tag variant="light-outline">共 {visible.length} 个</Tag>
         </Space>
       </div>
@@ -175,26 +274,45 @@ export function AppsPage({ api, device }: AppsPageProps) {
               {
                 colKey: 'label',
                 title: '应用',
-                cell: ({ row }: { row: AppInfo }) => (
-                  <div className="ac-app-cell">
-                    <span className="ac-app-cell__name">
-                      {/* 设备侧不给 label（Android 10 只有 labelRes，没有已解析的名称），
-                        此时标题就是包名；不要再用副标题把同一串重复一遍 */}
-                      {row.label ?? row.packageName}
-                      {/* 类型并进名称行：右栏只有半个窗口宽，独立一列不划算 */}
-                      <Tag
-                        size="small"
-                        theme={row.isSystem ? 'default' : 'primary'}
-                        variant="light-outline"
+                cell: ({ row }: { row: AppInfo }) => {
+                  const primary = row.label ?? row.packageName;
+                  const meta = [
+                    row.label ? row.packageName : null,
+                    row.versionName ? `v${row.versionName}` : null,
+                    formatBytes(row.apkSizeBytes),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+                  return (
+                    <button
+                      className="ac-app-cell ac-app-cell--button"
+                      title="查看应用详情"
+                      type="button"
+                      onClick={() => void openDetails(row)}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="ac-app-avatar"
+                        style={{ background: avatarColor(primary) }}
                       >
-                        {row.isSystem ? '系统' : '第三方'}
-                      </Tag>
-                    </span>
-                    {row.label ? (
-                      <span className="ac-app-cell__package">{row.packageName}</span>
-                    ) : null}
-                  </div>
-                ),
+                        {primary.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="ac-app-cell__text">
+                        <span className="ac-app-cell__name">
+                          {primary}
+                          <Tag
+                            size="small"
+                            theme={row.isSystem ? 'default' : 'primary'}
+                            variant="light-outline"
+                          >
+                            {row.isSystem ? '系统' : '第三方'}
+                          </Tag>
+                        </span>
+                        <span className="ac-app-cell__package">{meta}</span>
+                      </span>
+                    </button>
+                  );
+                },
               },
               {
                 colKey: 'actions',
@@ -230,11 +348,7 @@ export function AppsPage({ api, device }: AppsPageProps) {
                       disabled={busy === row.packageName}
                       size="small"
                       variant="text"
-                      onClick={() =>
-                        void run(row.packageName, '清除数据', async () => {
-                          await api!.clearAppData(serial, row.packageName);
-                        })
-                      }
+                      onClick={() => setPending({ kind: 'clear', app: row })}
                     >
                       清除数据
                     </Button>
@@ -243,12 +357,7 @@ export function AppsPage({ api, device }: AppsPageProps) {
                       size="small"
                       theme="danger"
                       variant="text"
-                      onClick={() =>
-                        void run(row.packageName, '卸载', async () => {
-                          await api!.uninstallApp(serial, row.packageName);
-                          await refresh();
-                        })
-                      }
+                      onClick={() => setPending({ kind: 'uninstall', app: row })}
                     >
                       卸载
                     </Button>
@@ -270,6 +379,81 @@ export function AppsPage({ api, device }: AppsPageProps) {
           />
         </div>
       ) : null}
+
+      <Dialog
+        attach="body"
+        cancelBtn="关闭"
+        confirmBtn={null}
+        header="应用详情"
+        visible={detail !== null}
+        width={520}
+        onCancel={() => setDetail(null)}
+        onClose={() => setDetail(null)}
+      >
+        {detailLoading ? <Loading loading size="small" text="正在读取详情…" /> : null}
+        {detail ? (
+          <div className="ac-app-detail">
+            <div className="ac-app-detail__head">
+              <span
+                aria-hidden="true"
+                className="ac-app-avatar ac-app-avatar--large"
+                style={{ background: avatarColor(detail.label ?? detail.packageName) }}
+              >
+                {(detail.label ?? detail.packageName).slice(0, 1).toUpperCase()}
+              </span>
+              <div>
+                <strong>{detail.label ?? detail.packageName}</strong>
+                <div className="ac-app-detail__muted">{detail.packageName}</div>
+              </div>
+            </div>
+            <dl className="ac-app-detail__rows">
+              <DetailRow
+                label="版本"
+                value={`${detail.versionName ?? '—'}${
+                  detail.versionCode === null ? '' : `（${detail.versionCode}）`
+                }`}
+              />
+              <DetailRow label="大小" value={formatBytes(detail.apkSizeBytes)} />
+              <DetailRow label="首次安装" value={formatDate(detail.firstInstallTime)} />
+              <DetailRow label="最近更新" value={formatDate(detail.lastUpdateTime)} />
+              <DetailRow
+                label="已授权权限"
+                value={detail.grantedPermissions === null ? '—' : `${detail.grantedPermissions} 项`}
+              />
+              <DetailRow label="类型" value={detail.isSystem ? '系统应用' : '第三方应用'} />
+              <DetailRow label="状态" value={detail.enabled ? '已启用' : '已停用'} />
+              <DetailRow mono label="APK 路径" value={detail.apkPath ?? '—'} />
+            </dl>
+          </div>
+        ) : null}
+      </Dialog>
+
+      <Dialog
+        attach="body"
+        cancelBtn="取消"
+        confirmBtn={pending?.kind === 'uninstall' ? '卸载' : '清除数据'}
+        header={pending?.kind === 'uninstall' ? '卸载应用' : '清除应用数据'}
+        theme="warning"
+        visible={pending !== null}
+        onCancel={() => setPending(null)}
+        onClose={() => setPending(null)}
+        onConfirm={() => void confirmPending()}
+      >
+        <p>
+          {pending?.kind === 'uninstall'
+            ? `将卸载「${pending.app.label ?? pending.app.packageName}」，应用数据会被一并删除。`
+            : `将清除「${pending?.app.label ?? pending?.app.packageName ?? ''}」的全部数据，无法恢复。`}
+        </p>
+      </Dialog>
+    </div>
+  );
+}
+
+function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="ac-app-detail__row">
+      <dt>{label}</dt>
+      <dd className={mono ? 'ac-app-detail__mono' : undefined}>{value}</dd>
     </div>
   );
 }

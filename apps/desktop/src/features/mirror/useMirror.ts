@@ -28,7 +28,13 @@ export interface MirrorState {
   start: () => Promise<void>;
   stop: () => Promise<void>;
   sendTouch: (action: TouchAction, clientX: number, clientY: number) => void;
-  sendKey: (keycode: number, pressed: boolean) => void;
+  /**
+   * 注入一次完整按键（按下 + 抬起）。
+   *
+   * 只发按下时 Android 只收到 ACTION_DOWN，返回 / 主页 / 多任务这类
+   * 由按键抬起触发的动作不会发生，所以这里必须成对发送。
+   */
+  pressKey: (keycode: number) => Promise<void>;
   sendText: (text: string) => Promise<void>;
   sendScroll: (clientX: number, clientY: number, h: number, v: number) => void;
 }
@@ -282,14 +288,25 @@ export function useMirror(
     [devicePoint],
   );
 
-  const sendKey = useCallback((keycode: number, pressed: boolean) => {
+  const sendKey = useCallback(async (keycode: number, pressed: boolean) => {
     const current = infoRef.current;
     const client = apiRef.current;
     if (!client || !current) return;
-    void client.sessionKey(current.sessionId, keycode, pressed).catch((cause: unknown) => {
+    try {
+      await client.sessionKey(current.sessionId, keycode, pressed);
+    } catch (cause) {
       setError(toMessage(cause, '注入按键失败'));
-    });
+    }
   }, []);
+
+  // 顺序执行：两个 invoke 是独立的异步命令，并发下发不保证先按下再抬起
+  const pressKey = useCallback(
+    async (keycode: number) => {
+      await sendKey(keycode, true);
+      await sendKey(keycode, false);
+    },
+    [sendKey],
+  );
 
   const sendText = useCallback(async (text: string) => {
     const current = infoRef.current;
@@ -319,7 +336,7 @@ export function useMirror(
     start,
     stop,
     sendTouch,
-    sendKey,
+    pressKey,
     sendText,
     sendScroll,
   };

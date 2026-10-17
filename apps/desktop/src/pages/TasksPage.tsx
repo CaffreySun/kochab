@@ -30,6 +30,10 @@ export function TasksPage() {
 
   return (
     <div className="ac-tasks">
+      <p className="ac-tasks__intro">
+        这里记录批量操作（重启、恢复分辨率）的逐台结果；单台设备的操作不会出现在这里。
+        批量命令没有原子性，所以成功与失败都按设备分别保留。
+      </p>
       <div className="ac-tasks__toolbar">
         <Tag variant="light-outline">共 {tasks.length} 条</Tag>
         {finished > 0 ? (
@@ -41,8 +45,8 @@ export function TasksPage() {
 
       {tasks.length === 0 ? (
         <EmptyState
-          description="在设备列表中勾选多台设备后，批量重启、恢复分辨率等操作会在这里留下记录。"
-          title="还没有任务"
+          description="在设备列表中勾选多台设备后执行批量重启或恢复分辨率，结果会留在这里。"
+          title="还没有批量记录"
         />
       ) : null}
 

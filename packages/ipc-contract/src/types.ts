@@ -113,6 +113,40 @@ export interface DeviceOverview {
   system: SystemInfo;
 }
 
+/** 截屏 / 录屏落盘结果 */
+export interface SavedFile {
+  path: string;
+  bytes: number;
+}
+
+/** 开始录屏后的返回；`maxSeconds` 是设备端 screenrecord 的时限 */
+export interface RecordStarted {
+  maxSeconds: number;
+}
+
+/** 切到无线调试后的连接信息 */
+export interface WirelessEnabled {
+  /** 形如 `192.168.1.158:5555` */
+  address: string;
+  message: string;
+}
+
+/** `wm size` / `wm density` 的覆盖现状 */
+export interface DisplayOverride {
+  physicalSize: string | null;
+  physicalDensity: string | null;
+  overrideSize: string | null;
+  overrideDensity: string | null;
+}
+
+/** 恢复屏幕尺寸 / density 的结果 */
+export interface DisplayResetResult {
+  /** 是否有覆盖项需要恢复；false 表示没有执行任何 reset */
+  overridden: boolean;
+  before: DisplayOverride;
+  message: string;
+}
+
 export interface AppInfo {
   packageName: string;
   /** pm list -f 解析出的 apk 安装路径 */

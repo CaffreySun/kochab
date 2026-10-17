@@ -52,6 +52,7 @@ fn code_of_core(err: &CoreError) -> &'static str {
         CoreError::DeviceNotReady { .. } => "device_not_ready",
         CoreError::ShellFailed { .. } => "shell_failed",
         CoreError::PermissionDenied(_) => "permission_denied",
+        CoreError::InvalidState(_) => "invalid_state",
         CoreError::PathNotFound(_) => "path_not_found",
         CoreError::NotADirectory(_) => "not_a_directory",
         CoreError::NotAFile(_) => "not_a_file",

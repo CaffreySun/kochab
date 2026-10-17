@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { DeviceConnectionState, DeviceInfo } from '@ac/ipc-contract';
 import { isTauriRuntime } from '../../ipc/tauri';
+import { readDevicePrefs } from '../devices/useDevicePrefs';
 
-/** 竖排按钮栏实际占宽（TDesign small 图标按钮，栏本身无内边距） */
+/** 竖排按钮栏宽度；必须与 `global.css` 的 `--ac-rail-width` 一致 */
 const RAIL_WIDTH = 34;
 /** 详情页容器的内边距与子项间距：`.ac-detail` 用的是 `--ac-space-xs` */
 const DETAIL_PADDING = 4;
@@ -108,9 +109,10 @@ function aspectOf(resolution: string | null): number {
   return parseAspect(resolution) ?? FALLBACK_ASPECT;
 }
 
-function titleFor(device: DeviceInfo | null): string {
+function titleFor(device: DeviceInfo | null, alias?: string): string {
   if (!device) return '设备';
-  const name = [device.manufacturer, device.model].filter(Boolean).join(' ') || device.serial;
+  const name =
+    alias?.trim() || [device.manufacturer, device.model].filter(Boolean).join(' ') || device.serial;
   return [name, device.serial, stateLabel(device.state)].join(' · ');
 }
 
@@ -165,8 +167,10 @@ export function useDetailWindow(
     if (!isTauriRuntime()) return;
     void (async () => {
       try {
+        // 动态导入而不是顶层静态导入：同一份前端产物还要跑在浏览器预览与
+        // jsdom 单测里，只有确认处于 Tauri 运行时后才加载窗口 API。
         const { getCurrentWindow } = await import('@tauri-apps/api/window');
-        await getCurrentWindow().setTitle(titleFor(device));
+        await getCurrentWindow().setTitle(titleFor(device, readDevicePrefs().aliases[serial]));
       } catch (cause) {
         // 标题没写上不影响功能，但要知道为什么，所以不静默
         console.warn('设置窗口标题失败', cause);

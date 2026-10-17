@@ -198,6 +198,30 @@ export function createMockTransport(
     device_connect_wireless: null,
     device_disconnect: null,
     device_overview: MOCK_OVERVIEW,
+    device_wifi_enable: {
+      address: '192.168.1.158:5555',
+      message: 'connected to 192.168.1.158:5555',
+    },
+    device_wifi_disable: '已切回 USB 模式并断开无线连接',
+    device_display: {
+      physicalSize: '1080x2400',
+      physicalDensity: '440',
+      overrideSize: null,
+      overrideDensity: null,
+    },
+    device_reset_display: {
+      overridden: false,
+      before: {
+        physicalSize: '1080x2400',
+        physicalDensity: '440',
+        overrideSize: null,
+        overrideDensity: null,
+      },
+      message: '屏幕尺寸与 density 都是系统默认值，无需恢复',
+    },
+    device_screenshot: { path: '/tmp/Downloads/screenshot.png', bytes: 1_728_740 },
+    device_record_start: { maxSeconds: 180 },
+    device_record_stop: { path: '/tmp/Downloads/recording.mp4', bytes: 68_872 },
     app_list: MOCK_APPS,
     app_details: MOCK_APPS[1],
     app_install: {
@@ -234,6 +258,7 @@ export function createMockTransport(
     file_stat: (args?: Record<string, unknown>) =>
       MOCK_FILES.find((f) => f.path === args?.path) ?? null,
     file_pull: { path: '/tmp/note.txt', bytes: 2048 },
+    file_pull_dir: { path: '/tmp/Download', bytes: 4096 },
     file_push: { path: '/sdcard/Download/app.apk', bytes: 1_048_576 },
     file_delete: null,
     file_create_dir: null,

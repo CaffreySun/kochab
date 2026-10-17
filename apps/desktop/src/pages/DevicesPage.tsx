@@ -8,6 +8,7 @@ import { DevicePreview } from '../features/preview/DevicePreview';
 import { DeviceMoreMenu } from '../features/devices/DeviceMoreMenu';
 import { BatchToolbar } from '../features/devices/BatchToolbar';
 import { UNGROUPED, useDeviceGroups } from '../features/devices/useDeviceGroups';
+import { useDevicePrefs } from '../features/devices/useDevicePrefs';
 import type { DevicesState } from '../features/devices/useDevices';
 import { openDeviceWindow } from '../features/window/openDeviceWindow';
 
@@ -26,6 +27,34 @@ export type WorkspaceTab = 'mirror' | 'apps' | 'files';
 
 type StateFilter = 'all' | DeviceConnectionState;
 
+const RECENT_ADDRESSES_KEY = 'ac.recentAddresses';
+const RECENT_ADDRESSES_LIMIT = 5;
+
+function readRecentAddresses(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(RECENT_ADDRESSES_KEY) ?? '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .slice(0, RECENT_ADDRESSES_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+function rememberAddress(address: string): string[] {
+  const next = [address, ...readRecentAddresses().filter((item) => item !== address)].slice(
+    0,
+    RECENT_ADDRESSES_LIMIT,
+  );
+  try {
+    window.localStorage.setItem(RECENT_ADDRESSES_KEY, JSON.stringify(next));
+  } catch {
+    // 写不进去不影响本次连接
+  }
+  return next;
+}
+
 /** 设备列表页：工具栏 + 设备卡片网格（含实时缩略图与竖排操作栏）。 */
 export function DevicesPage({
   api,
@@ -38,14 +67,17 @@ export function DevicesPage({
   const [stateFilter, setStateFilter] = useState<StateFilter>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [address, setAddress] = useState('');
+  const [connectOpen, setConnectOpen] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [recentAddresses, setRecentAddresses] = useState<string[]>(readRecentAddresses);
   const [groupFilter, setGroupFilter] = useState<string>('all');
   const [assignTarget, setAssignTarget] = useState<{ serial: string; current: string } | null>(
     null,
   );
   const [newGroupName, setNewGroupName] = useState('');
   const { groups, groupOf, assign, createAndAssign, removeGroup } = useDeviceGroups();
+  const { prefs, aliasOf, setAlias, isPinned, togglePinned } = useDevicePrefs();
 
   const visible = useMemo(() => {
     const needle = keyword.trim().toLowerCase();
@@ -53,23 +85,31 @@ export function DevicesPage({
       if (stateFilter !== 'all' && device.state !== stateFilter) return false;
       if (groupFilter !== 'all' && groupOf(device.serial) !== groupFilter) return false;
       if (!needle) return true;
+      const alias = aliasOf(device.serial);
       return (
         device.serial.toLowerCase().includes(needle) ||
         (device.model ?? '').toLowerCase().includes(needle) ||
-        (device.manufacturer ?? '').toLowerCase().includes(needle)
+        (device.manufacturer ?? '').toLowerCase().includes(needle) ||
+        (alias ?? '').toLowerCase().includes(needle)
       );
     });
-    // 按分组聚在一起，未分组排最后；组内保持 adb 上报的原始顺序。
+    // 置顶优先；其次按分组聚在一起，未分组排最后；组内保持 adb 上报的原始顺序。
     const order = new Map<string, number>(groups.names.map((name, index) => [name, index]));
     const rank = (name: string): number => {
       if (name === UNGROUPED) return Number.MAX_SAFE_INTEGER;
       return order.get(name) ?? Number.MAX_SAFE_INTEGER;
     };
+    const pinRank = (serial: string): number => {
+      const index = prefs.pinned.indexOf(serial);
+      return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+    };
     return [...matched].sort((a, b) => {
+      const pinnedDiff = pinRank(a.serial) - pinRank(b.serial);
+      if (pinnedDiff !== 0) return pinnedDiff;
       const diff = rank(groupOf(a.serial)) - rank(groupOf(b.serial));
       return diff !== 0 ? diff : 0;
     });
-  }, [devices, keyword, stateFilter, groupFilter, groupOf, groups.names]);
+  }, [devices, keyword, stateFilter, groupFilter, groupOf, groups.names, aliasOf, prefs.pinned]);
 
   /** 前 N 台就绪设备参与缩略图预览，避免设备一多就把主机压垮 */
   const previewSerials = useMemo(() => {
@@ -78,6 +118,25 @@ export function DevicesPage({
   }, [visible, previewLimit]);
 
   const selectedSerials = useMemo(() => [...selected].sort(), [selected]);
+
+  const readyVisible = useMemo(
+    () => visible.filter((device) => device.state === 'device'),
+    [visible],
+  );
+  const allReadySelected =
+    readyVisible.length > 0 && readyVisible.every((device) => selected.has(device.serial));
+
+  const toggleAll = useCallback(() => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allReadySelected) {
+        for (const device of readyVisible) next.delete(device.serial);
+      } else {
+        for (const device of readyVisible) next.add(device.serial);
+      }
+      return next;
+    });
+  }, [allReadySelected, readyVisible]);
 
   const toggleSelected = useCallback((serial: string, checked: boolean) => {
     setSelected((prev) => {
@@ -105,11 +164,14 @@ export function DevicesPage({
 
   const connect = async () => {
     if (!api || !address.trim()) return;
+    const target = address.trim();
     setConnecting(true);
     setConnectError(null);
     try {
-      await api.connectWireless(address.trim());
+      await api.connectWireless(target);
+      setRecentAddresses(rememberAddress(target));
       setAddress('');
+      setConnectOpen(false);
       await refresh();
     } catch (cause) {
       setConnectError(cause instanceof Error ? cause.message : String(cause));
@@ -170,23 +232,24 @@ export function DevicesPage({
           onChange={(value) => setKeyword(value)}
         />
         <Tag variant="light-outline">已选 {selected.size} 台</Tag>
+        <Button
+          disabled={readyVisible.length === 0}
+          size="small"
+          variant="outline"
+          onClick={toggleAll}
+        >
+          {allReadySelected ? '取消全选' : '全选'}
+        </Button>
         <Tag variant="light-outline">
           共 {visible.length} 台 · 预览 {previewSerials.size}/{previewLimit}
         </Tag>
 
-        <Input
-          placeholder="192.168.1.10:5555"
-          size="small"
-          style={{ width: 150 }}
-          value={address}
-          onChange={(value) => setAddress(value)}
-        />
         <Button
           icon={<LinkIcon />}
-          loading={connecting}
           size="small"
+          theme="primary"
           variant="outline"
-          onClick={() => void connect()}
+          onClick={() => setConnectOpen(true)}
         >
           连接设备
         </Button>
@@ -219,13 +282,6 @@ export function DevicesPage({
           </Tag>
         </div>
       ) : null}
-      {connectError ? (
-        <div role="alert">
-          <Tag theme="danger" variant="light-outline">
-            {connectError}
-          </Tag>
-        </div>
-      ) : null}
 
       {status !== 'loading' && visible.length === 0 ? (
         <EmptyState
@@ -234,7 +290,7 @@ export function DevicesPage({
               重新扫描
             </Button>
           }
-          description="请打开手机「开发者选项 → USB 调试」，连接后在本机确认授权。"
+          description="USB：打开手机「开发者选项 → USB 调试」并授权。无线：手机与本机连同一网络后点「连接设备」；已用 USB 连接的设备可从卡片「更多 → 无线调试」开启。"
           title={devices.length === 0 ? '没有检测到设备' : '没有匹配的设备'}
         />
       ) : null}
@@ -246,6 +302,7 @@ export function DevicesPage({
             checked={selected.has(device.serial)}
             device={device}
             group={groupOf(device.serial)}
+            name={aliasOf(device.serial)}
             preview={
               <DevicePreview
                 api={api}
@@ -253,7 +310,17 @@ export function DevicesPage({
                 enabled={previewEnabled && previewSerials.has(device.serial)}
               />
             }
-            railMore={<DeviceMoreMenu api={api} device={device} />}
+            railMore={
+              <DeviceMoreMenu
+                alias={aliasOf(device.serial)}
+                api={api}
+                device={device}
+                pinned={isPinned(device.serial)}
+                onDeviceListStale={() => void refresh()}
+                onRename={(name) => setAlias(device.serial, name)}
+                onTogglePin={() => togglePinned(device.serial)}
+              />
+            }
             onAction={handleAction}
             onCheckedChange={toggleSelected}
             onGroup={(serial) => setAssignTarget({ serial, current: groupOf(serial) })}
@@ -328,6 +395,54 @@ export function DevicesPage({
                 ))}
               </Space>
             </div>
+          ) : null}
+        </div>
+      </Dialog>
+
+      <Dialog
+        attach="body"
+        cancelBtn="取消"
+        confirmBtn="连接"
+        confirmLoading={connecting}
+        header="连接设备"
+        visible={connectOpen}
+        width={460}
+        onCancel={() => {
+          setConnectOpen(false);
+          setConnectError(null);
+        }}
+        onClose={() => {
+          setConnectOpen(false);
+          setConnectError(null);
+        }}
+        onConfirm={() => void connect()}
+      >
+        <div className="ac-connect">
+          <p className="ac-connect__hint">
+            手机需与本机在同一网络。已通过 USB 连接的设备，可在卡片「更多 → 无线调试」一键开启；
+            或先在手机终端执行 <code>adb tcpip 5555</code>。
+          </p>
+          <Input
+            clearable
+            placeholder="192.168.1.10:5555"
+            value={address}
+            onChange={(value) => setAddress(String(value))}
+            onEnter={() => void connect()}
+          />
+          {recentAddresses.length > 0 ? (
+            <div className="ac-connect__recent">
+              <span>最近</span>
+              {recentAddresses.map((item) => (
+                <Button key={item} size="small" variant="outline" onClick={() => setAddress(item)}>
+                  {item}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          {connectError ? (
+            <Tag theme="danger" variant="light-outline">
+              {connectError}
+            </Tag>
           ) : null}
         </div>
       </Dialog>

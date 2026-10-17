@@ -17,6 +17,8 @@ export type DeviceCardAction = 'screen' | 'apps' | 'files' | 'more';
 
 export interface DeviceCardProps {
   device: DeviceInfo;
+  /** 用户自定义名称；为空时显示序列号 */
+  name?: string;
   /** 是否勾选（批量操作的作用域） */
   checked?: boolean;
   onCheckedChange?: (serial: string, checked: boolean) => void;
@@ -60,6 +62,7 @@ const ACTIONS: Array<{ key: DeviceCardAction; label: string; icon: ReactNode }> 
  */
 export function DeviceCard({
   device,
+  name,
   checked = false,
   onCheckedChange,
   preview,
@@ -72,6 +75,7 @@ export function DeviceCard({
 }: DeviceCardProps) {
   const ready = device.state === 'device';
   const title = [device.manufacturer, device.model].filter(Boolean).join(' ') || device.serial;
+  const displayName = name?.trim() || device.model || device.serial;
 
   return (
     <article
@@ -96,11 +100,12 @@ export function DeviceCard({
         <button
           className="ac-device-card__identity"
           data-testid="device-select"
-          title={device.serial}
+          title={`${device.serial}${title !== device.serial ? ` · ${title}` : ''}`}
           type="button"
           onClick={() => onOpen?.(device.serial)}
         >
-          {device.serial}
+          <span className="ac-device-card__name">{displayName}</span>
+          <span className="ac-device-card__serial">{device.serial}</span>
         </button>
         <Tag size="small" theme={ready ? 'success' : 'danger'} variant="light-outline">
           {ready ? '已连接' : stateLabel(device)}

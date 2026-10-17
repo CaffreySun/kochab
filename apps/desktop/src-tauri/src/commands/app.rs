@@ -2,8 +2,8 @@
 
 use std::path::PathBuf;
 
-use android_core::{app, AppExportResult, AppInfo, CoreError, InstallResult};
-use tauri::{AppHandle, Manager};
+use android_core::{app, AppExportResult, AppInfo, InstallResult};
+use tauri::AppHandle;
 
 use crate::error::{CommandError, CommandResult};
 use crate::state::state;
@@ -141,15 +141,7 @@ pub async fn app_export(
     // 导出是常用操作，不让用户每次挑目录；默认落到系统「下载」目录。
     let dest = match dest_dir.as_deref().filter(|s| !s.trim().is_empty()) {
         Some(dir) => PathBuf::from(dir),
-        None => {
-            let dir = app.path().download_dir().map_err(|_| {
-                CommandError::from(CoreError::PathNotFound("系统「下载」目录不可用".to_owned()))
-            })?;
-            if !dir.exists() {
-                std::fs::create_dir_all(&dir)?;
-            }
-            dir
-        }
+        None => crate::commands::download_dir(&app)?,
     };
 
     app::export(&st.adb, &serial, &package_name, &dest, stem)

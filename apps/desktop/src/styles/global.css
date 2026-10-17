@@ -185,6 +185,14 @@ body {
   align-items: center;
 }
 
+.ac-tasks__intro {
+  max-width: 720px;
+  margin: 0;
+  color: var(--ac-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .ac-task {
   padding: var(--ac-space-md);
   border-radius: var(--ac-radius-md);
@@ -264,6 +272,36 @@ body {
   font-size: 12px;
 }
 
+.ac-connect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-sm);
+  padding: var(--ac-space-sm) 0;
+}
+
+.ac-connect__hint {
+  margin: 0;
+  color: var(--ac-text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ac-connect__hint code {
+  padding: 0 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--ac-bg-page);
+  border-radius: 3px;
+}
+
+.ac-connect__recent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-xs);
+  align-items: center;
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
 /* ------------------------------------------------------------------ *
  * 设备详情（独立窗口）
  *
@@ -273,6 +311,10 @@ body {
  * ------------------------------------------------------------------ */
 
 .ac-detail {
+  /* 竖排按钮栏的固定宽度：竖屏定画面宽度、横屏定画面高度时都要扣掉它。
+     值与 `useDetailWindow.ts` 里的 RAIL_WIDTH 保持一致。 */
+  --ac-rail-width: 34px;
+
   display: flex;
   box-sizing: border-box;
   gap: var(--ac-space-xs);
@@ -319,7 +361,8 @@ body {
 }
 
 .ac-detail[data-orientation='landscape'] .ac-mirror-stage {
-  width: 100%;
+  /* 横屏时画面由宽度定高：必须扣掉右侧按钮栏，否则 100% 宽度会把按钮栏挤出窗口 */
+  width: calc(100% - var(--ac-rail-width) - var(--ac-space-xs));
   height: auto;
 }
 
@@ -352,10 +395,15 @@ body {
 /* 状态浮在画面上，不占布局高度 */
 .ac-mirror-stage__status {
   position: absolute;
-  bottom: var(--ac-space-xs);
-  left: var(--ac-space-xs);
+  bottom: 8px;
+  left: 8px;
   display: flex;
   gap: var(--ac-space-xs);
+  padding: 4px 8px;
+  pointer-events: none;
+  background: rgb(0 0 0 / 55%);
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
 }
 
 /* 竖排按钮栏：窄，所以几乎不影响画面宽度 */
@@ -365,6 +413,7 @@ body {
   flex-direction: column;
   gap: 4px;
   align-items: center;
+  width: var(--ac-rail-width);
 }
 
 .ac-mirror-rail__divider {
@@ -512,19 +561,115 @@ body {
 
 .ac-app-cell {
   display: flex;
-  flex-direction: column;
+  gap: var(--ac-space-sm);
+  align-items: center;
   line-height: 1.3;
+}
+
+.ac-app-cell--button {
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.ac-app-cell--button:hover .ac-app-cell__name {
+  color: var(--td-brand-color);
+}
+
+.ac-app-cell__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ac-app-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.ac-app-avatar--large {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  border-radius: 10px;
 }
 
 .ac-app-cell__name {
   display: inline-flex;
   gap: 6px;
   align-items: center;
+  overflow: hidden;
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ac-app-cell__package {
+  overflow: hidden;
   color: var(--ac-text-placeholder);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-app-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-md);
+  padding: var(--ac-space-sm) 0;
+}
+
+.ac-app-detail__head {
+  display: flex;
+  gap: var(--ac-space-sm);
+  align-items: center;
+}
+
+.ac-app-detail__muted {
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+.ac-app-detail__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.ac-app-detail__row {
+  display: flex;
+  gap: var(--ac-space-md);
+}
+
+.ac-app-detail__row dt {
+  flex: none;
+  width: 84px;
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+.ac-app-detail__row dd {
+  min-width: 0;
+  margin: 0;
+  word-break: break-all;
+}
+
+.ac-app-detail__mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
 }
 
@@ -601,6 +746,15 @@ body {
   margin: 0;
 }
 
+.ac-overview__display-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--ac-space-xs);
+}
+
 .ac-overview__row {
   display: flex;
   gap: var(--ac-space-sm);
@@ -664,6 +818,14 @@ body {
   margin: 0 0 var(--ac-space-sm);
   color: var(--ac-text-placeholder);
   font-size: 12px;
+}
+
+.ac-settings__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-xs);
+  align-items: center;
+  margin-bottom: var(--ac-space-md);
 }
 
 .ac-settings__diagnostics {
@@ -743,4 +905,110 @@ body {
   word-break: break-all;
   background: var(--ac-bg-page);
   border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 「更多 -> 录屏」弹层
+ * ------------------------------------------------------------------ */
+
+.ac-record {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-sm);
+  width: 380px;
+  max-width: 90vw;
+  padding: var(--ac-space-md);
+}
+
+.ac-record__hint {
+  margin: 0;
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ac-record__live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-sm);
+}
+
+.ac-record__clock {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ac-record__limit {
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+.ac-record__path {
+  display: block;
+  padding: var(--ac-space-sm);
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: var(--ac-bg-page);
+  border-radius: 4px;
+}
+
+.ac-record__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  justify-content: flex-end;
+  padding-top: var(--ac-space-sm);
+}
+
+.ac-files__path {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-sm);
+  align-items: center;
+  min-height: 28px;
+}
+
+.ac-shell-popup__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-xs);
+  padding-bottom: var(--ac-space-xs);
+  border-bottom: 1px solid var(--ac-border-color);
+}
+
+.ac-shell-popup__history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-xs);
+  align-items: center;
+}
+
+.ac-shell-popup__history-label {
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
+}
+
+/* 历史按钮可能很长：限宽省略，完整内容放 title */
+.ac-shell-popup__history button {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-rename {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-sm);
+  width: 360px;
+  max-width: 90vw;
+  padding: var(--ac-space-md);
+}
+
+.ac-rename__hint {
+  margin: 0;
+  color: var(--ac-text-placeholder);
+  font-size: 12px;
 }

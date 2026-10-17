@@ -6,6 +6,18 @@ import { toMessage } from '../ipc';
 import { DEFAULT_PREVIEW_LIMIT } from './DevicesPage';
 import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../features/settings/mirrorOptions';
 
+const MIRROR_PRESETS: Array<{ label: string; options: Partial<MirrorOptions> }> = [
+  { label: '流畅', options: { maxSize: 720, maxFps: 30, bitRate: 4 } },
+  { label: '均衡', options: { maxSize: 1080, maxFps: 30, bitRate: 8 } },
+  { label: '高清', options: { maxSize: 0, maxFps: 60, bitRate: 16 } },
+];
+
+function matchesPreset(options: MirrorOptions, preset: Partial<MirrorOptions>): boolean {
+  return Object.entries(preset).every(
+    ([key, value]) => options[key as keyof MirrorOptions] === value,
+  );
+}
+
 export interface SettingsPageProps {
   api: Api | null;
   previewEnabled: boolean;
@@ -55,6 +67,29 @@ export function SettingsPage({
           新开投屏窗口时使用的默认参数。改动会立即保存，新开的窗口按新参数建立会话；
           已经建立的会话不受影响。
         </p>
+        <div className="ac-settings__presets">
+          {MIRROR_PRESETS.map((preset) => {
+            const active = matchesPreset(mirrorOptions, preset.options);
+            return (
+              <Button
+                key={preset.label}
+                size="small"
+                theme={active ? 'primary' : 'default'}
+                variant={active ? 'base' : 'outline'}
+                onClick={() => onMirrorOptionsChange({ ...mirrorOptions, ...preset.options })}
+              >
+                {preset.label}
+              </Button>
+            );
+          })}
+          <Button
+            size="small"
+            variant="text"
+            onClick={() => onMirrorOptionsChange(DEFAULT_MIRROR_OPTIONS)}
+          >
+            恢复默认
+          </Button>
+        </div>
         <Form labelAlign="left" labelWidth={120}>
           <Form.FormItem help="短边像素上限；填 0 表示跟随设备原始分辨率" label="分辨率上限">
             <div>

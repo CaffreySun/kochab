@@ -19,6 +19,15 @@ export const COMMANDS = {
   deviceConnectWireless: 'device_connect_wireless',
   deviceDisconnect: 'device_disconnect',
   deviceOverview: 'device_overview',
+  deviceWifiEnable: 'device_wifi_enable',
+  deviceWifiDisable: 'device_wifi_disable',
+  deviceResetDisplay: 'device_reset_display',
+  deviceDisplay: 'device_display',
+
+  // ---- 截屏 / 录屏 ----
+  deviceScreenshot: 'device_screenshot',
+  deviceRecordStart: 'device_record_start',
+  deviceRecordStop: 'device_record_stop',
 
   // ---- 应用管理 ----
   appList: 'app_list',
@@ -35,6 +44,7 @@ export const COMMANDS = {
   fileList: 'file_list',
   fileStat: 'file_stat',
   filePull: 'file_pull',
+  filePullDir: 'file_pull_dir',
   filePush: 'file_push',
   fileDelete: 'file_delete',
   fileCreateDir: 'file_create_dir',
@@ -64,6 +74,14 @@ export interface CommandPayloads {
   [COMMANDS.deviceConnectWireless]: { address: string };
   [COMMANDS.deviceDisconnect]: { serial: string };
   [COMMANDS.deviceOverview]: { serial: string };
+  [COMMANDS.deviceWifiEnable]: { serial: string };
+  [COMMANDS.deviceWifiDisable]: { serial: string };
+  [COMMANDS.deviceResetDisplay]: { serial: string };
+  [COMMANDS.deviceDisplay]: { serial: string };
+
+  [COMMANDS.deviceScreenshot]: { serial: string; suggestedName?: string };
+  [COMMANDS.deviceRecordStart]: { serial: string };
+  [COMMANDS.deviceRecordStop]: { serial: string; suggestedName?: string };
 
   [COMMANDS.appList]: { serial: string; filter?: string; showSystemApps?: boolean };
   [COMMANDS.appDetails]: { serial: string; packageName: string };
@@ -85,6 +103,7 @@ export interface CommandPayloads {
   [COMMANDS.fileList]: { serial: string; path: string };
   [COMMANDS.fileStat]: { serial: string; path: string };
   [COMMANDS.filePull]: { serial: string; remotePath: string; localPath: string };
+  [COMMANDS.filePullDir]: { serial: string; remotePath: string; destDir: string };
   [COMMANDS.filePush]: { serial: string; localPath: string; remotePath: string };
   [COMMANDS.fileDelete]: { serial: string; path: string };
   [COMMANDS.fileCreateDir]: { serial: string; path: string };

@@ -202,6 +202,122 @@ pub async fn pull(client: &AdbClient, serial: &str, remote: &str, local: &Path) 
     Ok(read)
 }
 
+/// 目录递归深度上限。防止异常目录结构（或设备端符号链接环）把递归拖死。
+const MAX_DIR_DEPTH: u32 = 32;
+
+/// 把设备目录递归下载到 `dest_dir/<目录名>`。
+///
+/// - 空目录也会在本地建出来；
+/// - 符号链接**不跟随**：既避免环，也避免把链接指向的任意路径拉下来；
+/// - 同一台设备只开一条 sync 会话，避免每个文件都重新握手。
+///
+/// 返回 `(本地目录, 总字节数)`。
+pub async fn pull_dir(
+    client: &AdbClient,
+    serial: &str,
+    remote: &str,
+    dest_dir: &Path,
+) -> Result<(PathBuf, u64)> {
+    let source = normalize_device_path(remote)?;
+    let name = source
+        .rsplit('/')
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or("download");
+    let target = dest_dir.join(sanitize_local_component(name));
+    std::fs::create_dir_all(&target)?;
+
+    let mut sync = client.open_sync(serial).await.map_err(map_adb_error)?;
+    let mut stack = vec![(source, target.clone(), 0u32)];
+    let mut total = 0u64;
+
+    while let Some((remote_dir, local_dir, depth)) = stack.pop() {
+        if depth > MAX_DIR_DEPTH {
+            return Err(CoreError::Internal(format!(
+                "目录层级超过 {MAX_DIR_DEPTH} 层，已停止下载：{remote_dir}"
+            )));
+        }
+        let entries = sync.list(&remote_dir).await.map_err(map_adb_error)?;
+        for entry in entries {
+            if entry.name.is_empty() || entry.name == "." || entry.name == ".." {
+                continue;
+            }
+            // 不跟随链接：设备上可能指向 / 或外部存储之外
+            if entry.is_symlink() {
+                continue;
+            }
+            let child_local = local_dir.join(sanitize_local_component(&entry.name));
+            let child_remote = join_device_path(&remote_dir, &entry.name)?;
+            if entry.is_dir() {
+                std::fs::create_dir_all(&child_local)?;
+                stack.push((child_remote, child_local, depth + 1));
+            } else if entry.is_file() {
+                total += sync
+                    .pull(&child_remote, &child_local)
+                    .await
+                    .map_err(map_adb_error)?;
+            }
+        }
+    }
+
+    Ok((target, total))
+}
+
+/// 设备文件名 → 安全的本地文件名。
+///
+/// 设备端允许 `:`、`?` 等 Windows 非法字符；直接落盘会失败。
+/// 只替换非法字符，尽量保留原名，避免用户找不到下载的文件。
+pub fn sanitize_local_component(name: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .map(|c| match c {
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
+            c if c.is_control() => '_',
+            c => c,
+        })
+        .collect();
+    let trimmed = cleaned.trim_end_matches([' ', '.']);
+    if trimmed.is_empty() || trimmed == "." || trimmed == ".." {
+        return "_".to_owned();
+    }
+    // Windows 保留名（CON、NUL、COM1…）不能直接作为文件名
+    let stem = trimmed
+        .split('.')
+        .next()
+        .unwrap_or(trimmed)
+        .to_ascii_uppercase();
+    let reserved = matches!(
+        stem.as_str(),
+        "CON"
+            | "PRN"
+            | "AUX"
+            | "NUL"
+            | "COM1"
+            | "COM2"
+            | "COM3"
+            | "COM4"
+            | "COM5"
+            | "COM6"
+            | "COM7"
+            | "COM8"
+            | "COM9"
+            | "LPT1"
+            | "LPT2"
+            | "LPT3"
+            | "LPT4"
+            | "LPT5"
+            | "LPT6"
+            | "LPT7"
+            | "LPT8"
+            | "LPT9"
+    );
+    if reserved {
+        format!("_{trimmed}")
+    } else {
+        trimmed.to_owned()
+    }
+}
+
 /// 按文件名推荐一个本地下载路径。
 pub fn suggest_local_path(dir: &Path, file_name: &str) -> PathBuf {
     let safe: String = file_name
@@ -347,5 +463,16 @@ mod tests {
             suggest_local_path(dir, ""),
             PathBuf::from("/tmp/downloads/download.bin")
         );
+    }
+
+    #[test]
+    fn 目录下载的本地文件名替换_windows_非法字符() {
+        assert_eq!(sanitize_local_component("a:b?c*.txt"), "a_b_c_.txt");
+        assert_eq!(sanitize_local_component("照片 2026"), "照片 2026");
+        assert_eq!(sanitize_local_component(".."), "_");
+        assert_eq!(sanitize_local_component(""), "_");
+        assert_eq!(sanitize_local_component("CON"), "_CON");
+        assert_eq!(sanitize_local_component("com1.txt"), "_com1.txt");
+        assert_eq!(sanitize_local_component("name. "), "name");
     }
 }

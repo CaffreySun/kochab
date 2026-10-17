@@ -6,8 +6,12 @@ import type {
   CommandPayloads,
   DeviceInfo,
   DeviceOverview,
+  DisplayOverride,
+  DisplayResetResult,
   FileEntry,
   InstallResult,
+  RecordStarted,
+  SavedFile,
   SessionClosedPayload,
   SessionInfo,
   SessionSizePayload,
@@ -18,6 +22,7 @@ import type {
   TouchAction,
   TransferResult,
   VideoFramePayload,
+  WirelessEnabled,
 } from '@ac/ipc-contract';
 import { COMMANDS, EVENTS } from '@ac/ipc-contract';
 import type { Transport, UnlistenFn } from './transport';
@@ -86,6 +91,48 @@ export function createApi(transport: Transport) {
       transport.invoke<DeviceOverview, CommandPayloads[typeof COMMANDS.deviceOverview]>(
         COMMANDS.deviceOverview,
         { serial },
+      ),
+
+    enableWireless: (serial: string) =>
+      transport.invoke<WirelessEnabled, CommandPayloads[typeof COMMANDS.deviceWifiEnable]>(
+        COMMANDS.deviceWifiEnable,
+        { serial },
+      ),
+
+    disableWireless: (serial: string) =>
+      transport.invoke<string, CommandPayloads[typeof COMMANDS.deviceWifiDisable]>(
+        COMMANDS.deviceWifiDisable,
+        { serial },
+      ),
+
+    resetDisplay: (serial: string) =>
+      transport.invoke<DisplayResetResult, CommandPayloads[typeof COMMANDS.deviceResetDisplay]>(
+        COMMANDS.deviceResetDisplay,
+        { serial },
+      ),
+
+    deviceDisplay: (serial: string) =>
+      transport.invoke<DisplayOverride, CommandPayloads[typeof COMMANDS.deviceDisplay]>(
+        COMMANDS.deviceDisplay,
+        { serial },
+      ),
+
+    screenshot: (serial: string, suggestedName?: string) =>
+      transport.invoke<SavedFile, CommandPayloads[typeof COMMANDS.deviceScreenshot]>(
+        COMMANDS.deviceScreenshot,
+        { serial, ...(suggestedName ? { suggestedName } : {}) },
+      ),
+
+    startRecording: (serial: string) =>
+      transport.invoke<RecordStarted, CommandPayloads[typeof COMMANDS.deviceRecordStart]>(
+        COMMANDS.deviceRecordStart,
+        { serial },
+      ),
+
+    stopRecording: (serial: string, suggestedName?: string) =>
+      transport.invoke<SavedFile, CommandPayloads[typeof COMMANDS.deviceRecordStop]>(
+        COMMANDS.deviceRecordStop,
+        { serial, ...(suggestedName ? { suggestedName } : {}) },
       ),
 
     // ---- 应用 ----
@@ -165,6 +212,12 @@ export function createApi(transport: Transport) {
           remotePath,
           localPath,
         },
+      ),
+
+    pullDir: (serial: string, remotePath: string, destDir: string) =>
+      transport.invoke<TransferResult, CommandPayloads[typeof COMMANDS.filePullDir]>(
+        COMMANDS.filePullDir,
+        { serial, remotePath, destDir },
       ),
 
     pushFile: (serial: string, localPath: string, remotePath: string) =>

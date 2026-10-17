@@ -4,6 +4,7 @@ use android_core::{device, DeviceInfo};
 use futures_util::stream::{self, StreamExt};
 use tauri::AppHandle;
 
+use crate::commands::ensure_ready;
 use crate::error::{CommandError, CommandResult};
 use crate::state::state;
 
@@ -103,18 +104,48 @@ pub async fn device_overview(
     serial: String,
 ) -> CommandResult<android_core::DeviceOverview> {
     let st = state(&app);
-
-    let entries = st.adb.devices().await?;
-    let entry = entries
-        .into_iter()
-        .find(|e| e.serial == serial)
-        .ok_or_else(|| CommandError::not_found(format!("设备 {serial} 不在连接列表中")))?;
-    if !entry.state.is_ready() {
-        return Err(CommandError::new(
-            "device_not_ready",
-            format!("设备 {serial} 当前状态为 {}，无法读取概览", entry.state),
-        ));
-    }
+    ensure_ready(&app, &serial).await?;
 
     Ok(android_core::overview::collect(&st.adb, &serial).await?)
+}
+
+/// 把 USB 设备切到无线调试，并自动连接回同一台设备。
+#[tauri::command]
+pub async fn device_wifi_enable(
+    app: AppHandle,
+    serial: String,
+) -> CommandResult<android_core::WirelessEnabled> {
+    ensure_ready(&app, &serial).await?;
+    let st = state(&app);
+    Ok(android_core::network::enable(&st.adb, &serial).await?)
+}
+
+/// 从无线连接切回 USB 模式。
+#[tauri::command]
+pub async fn device_wifi_disable(app: AppHandle, serial: String) -> CommandResult<String> {
+    ensure_ready(&app, &serial).await?;
+    let st = state(&app);
+    Ok(android_core::network::disable(&st.adb, &serial).await?)
+}
+
+/// 恢复被覆盖的屏幕尺寸与 density。
+#[tauri::command]
+pub async fn device_reset_display(
+    app: AppHandle,
+    serial: String,
+) -> CommandResult<android_core::DisplayReset> {
+    ensure_ready(&app, &serial).await?;
+    let st = state(&app);
+    Ok(android_core::display::reset(&st.adb, &serial).await?)
+}
+
+/// 读取屏幕尺寸 / density 的覆盖现状。
+#[tauri::command]
+pub async fn device_display(
+    app: AppHandle,
+    serial: String,
+) -> CommandResult<android_core::DisplayOverride> {
+    ensure_ready(&app, &serial).await?;
+    let st = state(&app);
+    Ok(android_core::display::inspect(&st.adb, &serial).await?)
 }

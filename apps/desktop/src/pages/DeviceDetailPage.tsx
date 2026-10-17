@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { Button, Dialog, Textarea } from 'tdesign-react';
+import { Button, Dialog, MessagePlugin, Textarea } from 'tdesign-react';
 import type { DeviceInfo } from '@ac/ipc-contract';
 import { EmptyState } from '@ac/ui';
 import type { Api } from '../ipc';
+import { toMessage } from '../ipc';
+import { fileStamp } from '../features/devices/RecordDialog';
 import { MIRROR_PRIORITY, useMirror } from '../features/mirror/useMirror';
 import { MirrorRail } from '../features/mirror/MirrorRail';
 import { MirrorStage } from '../features/mirror/MirrorStage';
@@ -100,8 +102,18 @@ export function DeviceDetailPage({
     void startRef.current();
   }, [startRequest, device]);
 
-  const { sendKey } = mirror;
-  const onKey = useCallback((keycode: number) => sendKey(keycode, true), [sendKey]);
+  const { pressKey } = mirror;
+  const onKey = useCallback((keycode: number) => void pressKey(keycode), [pressKey]);
+
+  const takeScreenshot = useCallback(async () => {
+    if (!api || !device) return;
+    try {
+      const saved = await api.screenshot(device.serial, `截屏_${fileStamp()}`);
+      await MessagePlugin.success(`已保存到 ${saved.path}`);
+    } catch (cause) {
+      await MessagePlugin.error(`截屏失败：${toMessage(cause)}`);
+    }
+  }, [api, device]);
 
   if (!device) {
     return (
@@ -139,6 +151,7 @@ export function DeviceDetailPage({
           onRestart={() => {
             void mirror.stop().then(() => mirror.start());
           }}
+          onScreenshot={() => void takeScreenshot()}
           onStop={() => void mirror.stop()}
           onTogglePanel={(next) => onPanelChange(panel === next ? null : next)}
         />

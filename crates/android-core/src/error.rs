@@ -27,6 +27,9 @@ pub enum CoreError {
     #[error("操作被设备拒绝：{0}")]
     PermissionDenied(String),
 
+    #[error("{0}")]
+    InvalidState(String),
+
     #[error("路径不存在：{0}")]
     PathNotFound(String),
 

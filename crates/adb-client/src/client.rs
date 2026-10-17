@@ -40,6 +40,9 @@ const READ_BUF: usize = 16 * 1024;
 /// 等待「可选负载」的最长时间。
 const OPTIONAL_PAYLOAD_TIMEOUT: Duration = Duration::from_millis(400);
 
+/// `tcpip:` / `usb:` 切换后等待 adb server 发完说明并关闭连接的上限。
+const NETWORK_MODE_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
+
 /// 执行一次 shell 的结果。
 ///
 /// 注意：`adb shell` 会把 stdout 与 stderr **合并**到同一条流里，
@@ -318,6 +321,31 @@ impl AdbClient {
         }
     }
 
+    // ---------------------------------------------------------------- 网络调试
+
+    /// 让设备把 adbd 切换为 TCP 监听（`adb tcpip <port>`）。
+    ///
+    /// 响应是 `OKAY` 后面跟一行普通文本（如 `restarting in TCP mode port: 5555`），
+    /// 没有长度前缀，最后以 EOF 结束。**必须把这段读完再断开**：
+    /// 实测只读到 `OKAY` 就关闭连接，adb server 会中止重启，设备仍停在 USB 模式
+    /// （命令却返回成功）。
+    pub async fn tcpip(&self, serial: &str, port: u16) -> Result<()> {
+        self.network_mode(serial, &format!("tcpip:{port}")).await
+    }
+
+    /// 让设备把 adbd 切回 USB 模式（`adb usb`）。
+    pub async fn usb(&self, serial: &str) -> Result<()> {
+        self.network_mode(serial, "usb:").await
+    }
+
+    async fn network_mode(&self, serial: &str, service: &str) -> Result<()> {
+        let mut t = self.open().await?;
+        Self::select_device(t.as_mut(), serial).await?;
+        codec::send_request(t.as_mut(), service).await?;
+        codec::read_status(t.as_mut()).await?;
+        drain_until_eof(t.as_mut(), NETWORK_MODE_DRAIN_TIMEOUT).await
+    }
+
     // ---------------------------------------------------------------- 设备侧 host 服务
 
     /// 执行一个**需要先选设备**的 host 服务：`forward` / `killforward` / `list-forward`。
@@ -481,6 +509,32 @@ impl DeviceTracker {
         let entry = DeviceListEntry::parse_line(&String::from_utf8_lossy(&buf))?;
         debug!(serial = %entry.serial, state = %entry.state, "设备变更");
         Ok(Some(entry))
+    }
+}
+
+/// 读到 EOF（或超时）为止，丢弃内容。
+///
+/// `tcpip:` / `usb:` 在 `OKAY` 之后会再发一行说明文本，且**没有长度前缀**。
+/// 必须把这条连接读干净再关闭，否则 adb server 可能在重启 adbd 前就被打断。
+async fn drain_until_eof(t: &mut (dyn Transport + '_), limit: Duration) -> Result<()> {
+    let read = async {
+        let mut buf = [0u8; READ_BUF];
+        loop {
+            match t.read_some(&mut buf).await {
+                Ok(0) => return Ok::<_, std::io::Error>(()),
+                Ok(_) => {}
+                // 有些 transport 把对端关闭报成 EOF 错误
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(()),
+                Err(e) => return Err(e),
+            }
+        }
+    };
+
+    match tokio::time::timeout(limit, read).await {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(AdbError::Io(e)),
+        // 超时说明服务已经接受请求，只是没关连接：继续执行，不把成功报成失败
+        Err(_) => Ok(()),
     }
 }
 
@@ -877,6 +931,32 @@ mod tests {
     fn 哨兵生成不重复() {
         assert_ne!(exit_token(), exit_token());
         assert!(exit_token().starts_with("__AC_EXIT_"));
+    }
+
+    #[tokio::test]
+    async fn tcpip_只读一个状态位并携带端口() {
+        let mock = MockTransport::new(b"OKAYOKAY".to_vec());
+        let log = mock.written();
+        let client = AdbClient::with_transport(Box::new(mock));
+
+        client.tcpip("d4535f72", 5555).await.unwrap();
+
+        let raw = String::from_utf8_lossy(&log.bytes()).into_owned();
+        assert!(raw.contains("host:transport:d4535f72"), "实际请求：{raw}");
+        assert!(raw.contains("tcpip:5555"), "实际请求：{raw}");
+    }
+
+    #[tokio::test]
+    async fn usb_切回_usb_模式() {
+        let mock = MockTransport::new(b"OKAYOKAY".to_vec());
+        let log = mock.written();
+        let client = AdbClient::with_transport(Box::new(mock));
+
+        client.usb("192.168.1.158:5555").await.unwrap();
+
+        let raw = String::from_utf8_lossy(&log.bytes()).into_owned();
+        assert!(raw.contains("host:transport:192.168.1.158:5555"));
+        assert!(raw.contains("usb:"));
     }
 
     #[test]

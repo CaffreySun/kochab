@@ -11,16 +11,22 @@
 
 pub mod app;
 pub mod device;
+pub mod display;
 pub mod error;
 pub mod file;
+pub mod media;
 pub mod model;
+pub mod network;
 pub mod overview;
 pub mod testing;
 pub mod toolchain;
 
+pub use display::{DisplayOverride, DisplayReset};
 pub use error::{CoreError, Result};
+pub use media::{Recording, SavedFile};
 pub use model::{
     AppExportResult, AppInfo, BatteryInfo, BatteryStatus, DeviceConnectionState, DeviceInfo,
     DeviceOverview, DeviceTransport, ExportedApk, FileEntry, InstallResult, MemoryInfo,
     NetworkInfo, ShellOutput, StorageInfo, StorageVolume, SystemInfo, ToolchainStatus,
 };
+pub use network::WirelessEnabled;

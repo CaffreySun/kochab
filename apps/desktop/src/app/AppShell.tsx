@@ -20,7 +20,7 @@ export interface AppShellProps {
 
 const NAV: Array<{ key: ShellView; label: string; icon: ReactNode }> = [
   { key: 'devices', label: '设备', icon: <MobileIcon size="22px" /> },
-  { key: 'tasks', label: '任务', icon: <OrderListIcon size="22px" /> },
+  { key: 'tasks', label: '记录', icon: <OrderListIcon size="22px" /> },
   { key: 'settings', label: '设置', icon: <SettingIcon size="22px" /> },
 ];
 

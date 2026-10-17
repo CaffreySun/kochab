@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Loading, Progress, Tag } from 'tdesign-react';
+import { Button, Loading, MessagePlugin, Progress, Tag } from 'tdesign-react';
 import { RefreshIcon } from 'tdesign-icons-react';
-import type { BatteryStatus, DeviceInfo, DeviceOverview, StorageVolume } from '@ac/ipc-contract';
+import type {
+  BatteryStatus,
+  DeviceInfo,
+  DeviceOverview,
+  DisplayOverride,
+  StorageVolume,
+} from '@ac/ipc-contract';
 import type { Api } from '../ipc';
 import { toMessage } from '../ipc';
 
@@ -16,6 +22,8 @@ type Status = 'idle' | 'loading' | 'ready' | 'error';
 export function OverviewPage({ api, device }: OverviewPageProps) {
   const serial = device?.state === 'device' ? device.serial : null;
   const [overview, setOverview] = useState<DeviceOverview | null>(null);
+  const [display, setDisplay] = useState<DisplayOverride | null>(null);
+  const [displayBusy, setDisplayBusy] = useState(false);
   // 初值就是「加载中」：首帧直接是加载态，避免在 effect 里同步 setState
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +33,37 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
     setStatus('loading');
     setError(null);
     try {
-      setOverview(await api.deviceOverview(serial));
+      // 显示信息是可选增强：读不到也不该让整页失败
+      const [nextOverview, nextDisplay] = await Promise.all([
+        api.deviceOverview(serial),
+        api.deviceDisplay(serial).catch(() => null),
+      ]);
+      setOverview(nextOverview);
+      setDisplay(nextDisplay);
       setStatus('ready');
     } catch (cause) {
       setError(toMessage(cause, '读取设备概览失败'));
       setStatus('error');
     }
   }, [api, serial]);
+
+  const resetDisplay = useCallback(async () => {
+    if (!api || !serial) return;
+    setDisplayBusy(true);
+    try {
+      const result = await api.resetDisplay(serial);
+      if (result.overridden) {
+        void MessagePlugin.success(result.message);
+        await refresh();
+      } else {
+        void MessagePlugin.info(result.message);
+      }
+    } catch (cause) {
+      void MessagePlugin.error(`恢复显示失败：${toMessage(cause)}`);
+    } finally {
+      setDisplayBusy(false);
+    }
+  }, [api, serial, refresh]);
 
   useEffect(() => {
     void refresh();
@@ -138,6 +170,43 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
             <dl className="ac-overview__rows">
               <Row label="WLAN 地址" value={overview.network.wlanIpv4 ?? '未连接 Wi-Fi'} />
             </dl>
+          </section>
+
+          <section className="ac-overview__card">
+            <h3>显示</h3>
+            {display ? (
+              <>
+                <dl className="ac-overview__rows">
+                  <Row label="分辨率" value={display.overrideSize ?? display.physicalSize ?? '—'} />
+                  <Row
+                    label="密度"
+                    value={`${display.overrideDensity ?? display.physicalDensity ?? '—'} dpi`}
+                  />
+                </dl>
+                <div className="ac-overview__display-foot">
+                  {display.overrideSize || display.overrideDensity ? (
+                    <>
+                      <Tag size="small" theme="warning" variant="light-outline">
+                        已被覆盖
+                      </Tag>
+                      <Button
+                        loading={displayBusy}
+                        size="small"
+                        theme="primary"
+                        variant="outline"
+                        onClick={() => void resetDisplay()}
+                      >
+                        恢复默认
+                      </Button>
+                    </>
+                  ) : (
+                    <span className="ac-overview__muted">系统默认显示参数</span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="ac-overview__empty">读不到显示信息。</p>
+            )}
           </section>
 
           <section className="ac-overview__card">

@@ -9,6 +9,7 @@ import {
   KeyboardIcon,
   MinusIcon,
   MoreIcon,
+  ScreenshotIcon,
   ViewModuleIcon,
 } from 'tdesign-icons-react';
 import { ANDROID_KEY, KEYCODE_BACK } from '@ac/scrcpy-web';
@@ -24,6 +25,8 @@ export interface MirrorRailProps {
   onRestart: () => void;
   onOpenText: () => void;
   onTogglePanel: (panel: DetailPanel) => void;
+  /** 截屏并保存；不传时不显示截图按钮 */
+  onScreenshot?: () => void;
 }
 
 /**
@@ -41,6 +44,7 @@ export function MirrorRail({
   onRestart,
   onOpenText,
   onTogglePanel,
+  onScreenshot,
 }: MirrorRailProps) {
   const streaming = status === 'streaming';
   const key = (keycode: number) => () => onKey(keycode);
@@ -113,6 +117,17 @@ export function MirrorRail({
           onClick={onOpenText}
         />
       </Tooltip>
+      {onScreenshot ? (
+        <Tooltip content="截屏" placement="left">
+          <Button
+            aria-label="截屏"
+            icon={<ScreenshotIcon />}
+            size="small"
+            variant="outline"
+            onClick={onScreenshot}
+          />
+        </Tooltip>
+      ) : null}
       <Dropdown
         maxColumnWidth={140}
         options={[

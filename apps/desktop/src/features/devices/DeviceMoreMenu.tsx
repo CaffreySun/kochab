@@ -1,42 +1,63 @@
 import { useState } from 'react';
-import { Button, Dialog, Dropdown, MessagePlugin, Tag, Textarea } from 'tdesign-react';
+import { Button, Dialog, Dropdown, Input, MessagePlugin, Tag, Textarea } from 'tdesign-react';
 import { MoreIcon } from 'tdesign-icons-react';
 import type { DeviceInfo, ShellOutput } from '@ac/ipc-contract';
 import type { Api } from '../../ipc';
 import { toMessage } from '../../ipc';
+import { fileStamp, RecordDialog } from './RecordDialog';
+import { readShellHistory, rememberShellCommand } from './shellHistory';
 
-/** 恢复被开发者选项改过的屏幕尺寸。 */
-const RESET_RESOLUTION = 'wm size reset';
 /** 重启设备。 */
 const REBOOT = 'reboot';
 
-/**
- * 从 `ip -4 addr show wlan0` 的输出里捞出 IPv4 地址。
- *
- * 不用 `ip -4 route show wlan0`：部分 Android 的 iproute2 不认这种省略 `dev` 的写法，
- * 会直接报 “inet prefix is expected rather than "wlan0"”，于是明明连着 Wi-Fi 也读不到地址。
- */
-function parseWlanAddress(output: string): string | null {
-  const match = output.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
-  return match?.[1] ?? null;
-}
+/** 常用命令：把最常查的几项做成按钮，省得每次敲。 */
+const QUICK_COMMANDS = [
+  { label: '电池', command: 'dumpsys battery' },
+  { label: '分辨率', command: 'wm size' },
+  { label: '密度', command: 'wm density' },
+  { label: '前台窗口', command: 'dumpsys window | grep mCurrentFocus' },
+  { label: 'Wi-Fi 地址', command: 'ip -4 addr show wlan0' },
+  { label: '第三方应用', command: 'pm list packages -3' },
+];
 
 export interface DeviceMoreMenuProps {
   api: Api | null;
   device: DeviceInfo;
+  /** 用户自定义名称 */
+  alias?: string;
+  /** 是否置顶 */
+  pinned?: boolean;
+  /** 无线调试开启/关闭后通知上层刷新设备列表 */
+  onDeviceListStale?: () => void;
+  /** 保存自定义名称；空串表示恢复默认 */
+  onRename?: (name: string) => void;
+  onTogglePin?: () => void;
 }
 
 /**
  * 设备卡片上「更多」按钮的菜单。
  *
- * 里面的动作全部复用已有的 `shell_exec` / `connectWireless` 命令，
- * 不额外增加协议面——命令行是最通用的那个，剩下的只是常用命令的快捷方式。
+ * 重启与命令行走通用的 `shell_exec`；截屏、录屏、无线调试、恢复分辨率
+ * 都有独立命令——它们要么需要处理设备端进程，要么需要解析 `wm` 输出，
+ * 不能靠一行 shell 文本糊过去。
  */
-export function DeviceMoreMenu({ api, device }: DeviceMoreMenuProps) {
+export function DeviceMoreMenu({
+  api,
+  device,
+  alias,
+  pinned = false,
+  onDeviceListStale,
+  onRename,
+  onTogglePin,
+}: DeviceMoreMenuProps) {
   const [shellOpen, setShellOpen] = useState(false);
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [draftName, setDraftName] = useState('');
   const [command, setCommand] = useState('');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ShellOutput | null>(null);
+  const [shellHistory, setShellHistory] = useState<string[]>(readShellHistory);
 
   const runShell = async (serial: string, cmd: string, label: string): Promise<boolean> => {
     if (!api || !cmd.trim()) return false;
@@ -65,10 +86,12 @@ export function DeviceMoreMenu({ api, device }: DeviceMoreMenuProps) {
    */
   const runCommand = async () => {
     if (!api || !command.trim()) return;
+    const trimmed = command.trim();
     setRunning(true);
     setResult(null);
+    setShellHistory(rememberShellCommand(trimmed));
     try {
-      setResult(await api.shellExec(device.serial, command.trim()));
+      setResult(await api.shellExec(device.serial, trimmed));
     } catch (cause) {
       void MessagePlugin.error(`执行失败：${toMessage(cause)}`);
     } finally {
@@ -82,31 +105,70 @@ export function DeviceMoreMenu({ api, device }: DeviceMoreMenuProps) {
     setResult(null);
   };
 
-  /** 读出手机 Wi-Fi 地址：只能如实报告，连接要用户自己在工具栏确认。 */
-  const readWirelessAddress = async () => {
+  const options = [
+    { content: '截屏', value: 'screenshot' },
+    { content: '录屏', value: 'record' },
+    {
+      content: device.transport === 'wifi' ? '关闭无线端口' : '无线调试',
+      value: 'wireless',
+    },
+    { content: '命令行', value: 'shell' },
+    { content: alias ? `重命名设备（${alias}）` : '重命名设备', value: 'rename' },
+    { content: pinned ? '取消置顶' : '置顶', value: 'pin' },
+    { content: '恢复分辨率', value: 'reset-resolution' },
+    { content: '重启设备', value: 'reboot' },
+  ];
+
+  const takeScreenshot = async () => {
     if (!api) return;
     setRunning(true);
     try {
-      const out = await api.shellExec(device.serial, 'ip -4 addr show wlan0');
-      const address = out.exitCode === 0 ? parseWlanAddress(out.stdout) : null;
-      if (address) {
-        void MessagePlugin.info(`请在顶部「连接设备」里填入 ${address}:5555 并连接`);
-      } else {
-        void MessagePlugin.warning('读不到 Wi-Fi 地址：请确认手机已连上 Wi-Fi');
-      }
+      const saved = await api.screenshot(device.serial, `截屏_${fileStamp()}`);
+      void MessagePlugin.success(`已保存到 ${saved.path}`);
     } catch (cause) {
-      void MessagePlugin.error(`读取 Wi-Fi 地址失败：${toMessage(cause)}`);
+      void MessagePlugin.error(`截屏失败：${toMessage(cause)}`);
     } finally {
       setRunning(false);
     }
   };
 
-  const options = [
-    { content: '无线连接', value: 'wireless' },
-    { content: '命令行', value: 'shell' },
-    { content: '恢复分辨率', value: 'reset-resolution' },
-    { content: '重启设备', value: 'reboot' },
-  ];
+  const resetDisplay = async () => {
+    if (!api) return;
+    setRunning(true);
+    try {
+      const result = await api.resetDisplay(device.serial);
+      if (result.overridden) {
+        void MessagePlugin.success(result.message);
+      } else {
+        void MessagePlugin.info(result.message);
+      }
+    } catch (cause) {
+      void MessagePlugin.error(`恢复分辨率失败：${toMessage(cause)}`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const toggleWireless = async () => {
+    if (!api) return;
+    setRunning(true);
+    try {
+      if (device.transport === 'wifi') {
+        const message = await api.disableWireless(device.serial);
+        void MessagePlugin.success(message);
+      } else {
+        const result = await api.enableWireless(device.serial);
+        void MessagePlugin.success(`无线调试已开启：${result.address}`);
+      }
+      onDeviceListStale?.();
+    } catch (cause) {
+      void MessagePlugin.error(
+        `${device.transport === 'wifi' ? '关闭无线端口' : '开启无线调试'}失败：${toMessage(cause)}`,
+      );
+    } finally {
+      setRunning(false);
+    }
+  };
 
   return (
     <>
@@ -119,17 +181,31 @@ export function DeviceMoreMenu({ api, device }: DeviceMoreMenuProps) {
           // options 由本文件定义，value 一定是字符串；content 可能是 TNode，不能直接字符串化
           const picked = typeof option.value === 'string' ? option.value : '';
           switch (picked) {
+            case 'screenshot':
+              void takeScreenshot();
+              break;
+            case 'record':
+              setRecordOpen(true);
+              break;
             case 'reset-resolution':
-              void runShell(device.serial, RESET_RESOLUTION, '恢复分辨率');
+              void resetDisplay();
               break;
             case 'reboot':
               void runShell(device.serial, REBOOT, '重启设备');
               break;
             case 'wireless':
-              void readWirelessAddress();
+              void toggleWireless();
               break;
             case 'shell':
               setShellOpen(true);
+              break;
+            case 'rename':
+              setDraftName(alias ?? '');
+              setRenameOpen(true);
+              break;
+            case 'pin':
+              onTogglePin?.();
+              void MessagePlugin.success(pinned ? '已取消置顶' : '已置顶');
               break;
             default:
               break;
@@ -155,6 +231,18 @@ export function DeviceMoreMenu({ api, device }: DeviceMoreMenuProps) {
           onClose={() => closeShell()}
         >
           <div className="ac-shell-popup">
+            <div className="ac-shell-popup__quick">
+              {QUICK_COMMANDS.map((item) => (
+                <Button
+                  key={item.label}
+                  size="small"
+                  variant="text"
+                  onClick={() => setCommand(item.command)}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
             <Textarea
               autosize={{ minRows: 3, maxRows: 8 }}
               placeholder="例如：dumpsys battery"
@@ -175,6 +263,22 @@ export function DeviceMoreMenu({ api, device }: DeviceMoreMenuProps) {
                 关闭
               </Button>
             </div>
+            {shellHistory.length > 0 ? (
+              <div className="ac-shell-popup__history">
+                <span className="ac-shell-popup__history-label">最近</span>
+                {shellHistory.slice(0, 6).map((item) => (
+                  <Button
+                    key={item}
+                    size="small"
+                    title={item}
+                    variant="outline"
+                    onClick={() => setCommand(item)}
+                  >
+                    {item}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
             {result ? (
               <div className="ac-shell-popup__result">
                 <div className="ac-shell-popup__result-head">
@@ -195,6 +299,42 @@ export function DeviceMoreMenu({ api, device }: DeviceMoreMenuProps) {
           </div>
         </Dialog>
       ) : null}
+
+      <Dialog
+        attach="body"
+        cancelBtn="取消"
+        confirmBtn="保存"
+        header={`重命名设备 · ${device.serial}`}
+        visible={renameOpen}
+        onCancel={() => setRenameOpen(false)}
+        onClose={() => setRenameOpen(false)}
+        onConfirm={() => {
+          onRename?.(draftName);
+          setRenameOpen(false);
+        }}
+      >
+        <div className="ac-rename">
+          <p className="ac-rename__hint">只影响本机列表里的显示；留空则恢复序列号。</p>
+          <Input
+            autofocus
+            clearable
+            placeholder={device.model ?? device.serial}
+            value={draftName}
+            onChange={(value) => setDraftName(String(value))}
+            onEnter={() => {
+              onRename?.(draftName);
+              setRenameOpen(false);
+            }}
+          />
+        </div>
+      </Dialog>
+
+      <RecordDialog
+        api={api}
+        open={recordOpen}
+        serial={device.serial}
+        onClose={() => setRecordOpen(false)}
+      />
     </>
   );
 }
