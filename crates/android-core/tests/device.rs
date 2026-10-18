@@ -27,6 +27,7 @@ fn client() -> AdbClient {
 
 #[tokio::test]
 async fn 工具链自检不返回未知问题() {
+    let _serial = require_device!();
     let c = client();
     let status = toolchain::diagnose(Some(&c)).await;
 
