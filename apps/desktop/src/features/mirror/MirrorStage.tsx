@@ -1,6 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { Button, Loading, Tag } from 'tdesign-react';
-import type { SessionInfo, SessionStats } from '@ac/ipc-contract';
+import { Button, Loading } from 'tdesign-react';
 import type { MirrorStatus } from './useMirror';
 import { formatDuration } from '../recording/useRecording';
 
@@ -8,8 +7,6 @@ export interface MirrorStageProps {
   /** 回调 ref：调用方需要把这个 canvas 交给解码器，用回调形式避免 ref 对象的变型问题 */
   setCanvas: (element: HTMLCanvasElement | null) => void;
   status: MirrorStatus;
-  info: SessionInfo | null;
-  stats: SessionStats | null;
   error: string | null;
   /** 正在录屏时的秒数；null 表示未录屏 */
   recordingSeconds?: number | null;
@@ -29,8 +26,6 @@ export interface MirrorStageProps {
 export function MirrorStage({
   setCanvas,
   status,
-  info,
-  stats,
   error,
   recordingSeconds = null,
   onStart,
@@ -86,21 +81,7 @@ export function MirrorStage({
         </div>
       ) : null}
 
-      {/* 状态浮在画面上，不占布局高度 */}
-      {streaming ? (
-        <div className="ac-mirror-stage__status">
-          {info ? (
-            <Tag size="small" variant="light-outline">
-              {info.width}×{info.height}
-            </Tag>
-          ) : null}
-          {stats ? (
-            <Tag data-testid="mirror-fps" size="small" variant="light-outline">
-              {stats.fps.toFixed(0)} fps
-            </Tag>
-          ) : null}
-        </div>
-      ) : (
+      {streaming ? null : (
         <div className="ac-mirror-stage__overlay">
           {status === 'starting' ? (
             <Loading loading size="small" text="正在协商会话…" />

@@ -393,19 +393,6 @@ body {
 }
 
 /* 状态浮在画面上，不占布局高度 */
-.ac-mirror-stage__status {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  display: flex;
-  gap: var(--ac-space-xs);
-  padding: 4px 8px;
-  pointer-events: none;
-  background: rgb(0 0 0 / 55%);
-  border-radius: 999px;
-  backdrop-filter: blur(4px);
-}
-
 .ac-mirror-stage__recording {
   position: absolute;
   top: 8px;

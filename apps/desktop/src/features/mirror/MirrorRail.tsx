@@ -14,6 +14,7 @@ import {
   ViewModuleIcon,
 } from 'tdesign-icons-react';
 import { ANDROID_KEY, KEYCODE_BACK } from '@ac/scrcpy-web';
+import type { SessionInfo, SessionStats } from '@ac/ipc-contract';
 import type { DetailPanel } from '../../windowMode';
 import { formatDuration } from '../recording/useRecording';
 import type { MirrorStatus } from './useMirror';
@@ -34,6 +35,9 @@ export interface MirrorRailProps {
   recordingElapsed?: number;
   /** 开始/停止录屏；不传时不显示录屏按钮 */
   onRecordToggle?: () => void;
+  /** 会话信息与统计；只在「更多」菜单里展示，不覆盖画面 */
+  sessionInfo?: SessionInfo | null;
+  stats?: SessionStats | null;
 }
 
 /**
@@ -55,6 +59,8 @@ export function MirrorRail({
   recordingActive = false,
   recordingElapsed = 0,
   onRecordToggle,
+  sessionInfo = null,
+  stats = null,
 }: MirrorRailProps) {
   const streaming = status === 'streaming';
   const key = (keycode: number) => () => onKey(keycode);
@@ -156,6 +162,24 @@ export function MirrorRail({
       <Dropdown
         maxColumnWidth={140}
         options={[
+          ...(sessionInfo
+            ? [
+                {
+                  content: `分辨率 ${sessionInfo.width}×${sessionInfo.height}`,
+                  value: 'size',
+                  disabled: true,
+                },
+              ]
+            : []),
+          ...(stats
+            ? [
+                {
+                  content: `帧率 ${stats.fps.toFixed(0)} fps`,
+                  value: 'fps',
+                  disabled: true,
+                },
+              ]
+            : []),
           { content: '停止投屏', value: 'stop', disabled: !streaming },
           { content: '重新开始', value: 'restart', disabled: !streaming },
         ]}

@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type React from 'react';
-import { COMMANDS, type DeviceInfo, type SessionInfo } from '@ac/ipc-contract';
+import { COMMANDS, type DeviceInfo } from '@ac/ipc-contract';
 import { KEYCODE_BACK } from '@ac/scrcpy-web';
 import { createApi } from '../ipc';
 import { createMockTransport } from '../ipc/mock';
@@ -15,6 +15,7 @@ import { DeviceMoreMenu } from '../features/devices/DeviceMoreMenu';
 import { TasksProvider } from '../features/tasks/TasksProvider';
 import { useDevices } from '../features/devices/useDevices';
 import { FilesPage } from './FilesPage';
+import { MirrorRail } from '../features/mirror/MirrorRail';
 import { MirrorStage } from '../features/mirror/MirrorStage';
 import { MIRROR_PRIORITY, PREVIEW_PRIORITY } from '../features/mirror/useMirror';
 import { openDeviceWindow } from '../features/window/openDeviceWindow';
@@ -739,27 +740,8 @@ describe('DeviceMoreMenu', () => {
 });
 
 describe('MirrorStage', () => {
-  const SESSION_INFO = {
-    sessionId: 1,
-    serial: 'd4535f72',
-    localPort: 5000,
-    deviceSocket: 'scrcpy_abc',
-    deviceName: 'MIX 2S',
-    width: 540,
-    height: 1080,
-  } as SessionInfo;
-  const SESSION_STATS = {
-    sessionId: 1,
-    frames: 100,
-    keyFrames: 2,
-    bytes: 1024,
-    dropped: 0,
-    fps: 27,
-  };
   const baseProps = {
     setCanvas: vi.fn(),
-    info: null,
-    stats: null,
     error: null,
     sendTouch: vi.fn(),
   };
@@ -788,20 +770,52 @@ describe('MirrorStage', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('设备已离线');
   });
 
-  it('投屏中显示分辨率与帧率，且不再显示开始入口', () => {
+  it('投屏中不再把分辨率/帧率盖在画面上', () => {
+    render(<MirrorStage {...baseProps} status="streaming" onStart={vi.fn()} />);
+
+    expect(screen.queryByTestId('mirror-fps')).not.toBeInTheDocument();
+    expect(screen.queryByText('540×1080')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '开始投屏' })).not.toBeInTheDocument();
+  });
+});
+
+describe('MirrorRail', () => {
+  it('分辨率与帧率收进「更多」菜单，不再覆盖画面', async () => {
+    const user = userEvent.setup();
     render(
-      <MirrorStage
-        {...baseProps}
-        info={SESSION_INFO}
-        stats={{ ...SESSION_STATS, fps: 27 }}
+      <MirrorRail
+        panel={null}
+        sessionInfo={{
+          sessionId: 1,
+          serial: 'd4535f72',
+          localPort: 5000,
+          deviceSocket: 'scrcpy_abc',
+          deviceName: 'MIX 2S',
+          width: 540,
+          height: 1080,
+          codec: 'h264',
+        }}
+        stats={{
+          sessionId: 1,
+          frames: 100,
+          keyFrames: 2,
+          bytes: 1024,
+          dropped: 0,
+          fps: 27,
+        }}
         status="streaming"
-        onStart={vi.fn()}
+        onKey={vi.fn()}
+        onOpenText={vi.fn()}
+        onRestart={vi.fn()}
+        onStop={vi.fn()}
+        onTogglePanel={vi.fn()}
       />,
     );
 
-    expect(screen.getByText('540×1080')).toBeInTheDocument();
-    expect(screen.getByTestId('mirror-fps')).toHaveTextContent('27 fps');
-    expect(screen.queryByRole('button', { name: '开始投屏' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '更多投屏操作' }));
+
+    expect(await screen.findByText('分辨率 540×1080')).toBeInTheDocument();
+    expect(screen.getByText('帧率 27 fps')).toBeInTheDocument();
   });
 });
 

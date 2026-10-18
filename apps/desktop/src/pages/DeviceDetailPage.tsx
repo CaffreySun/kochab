@@ -152,11 +152,9 @@ export function DeviceDetailPage({
       <div className="ac-detail__main">
         <MirrorStage
           error={mirror.error}
-          info={mirror.info}
           recordingSeconds={recording.active ? recording.elapsed : null}
           sendTouch={mirror.sendTouch}
           setCanvas={setCanvas}
-          stats={mirror.stats}
           status={status}
           onStart={() => void mirror.start()}
         />
@@ -165,6 +163,8 @@ export function DeviceDetailPage({
           panel={panel}
           recordingActive={recording.active}
           recordingElapsed={recording.elapsed}
+          sessionInfo={mirror.info}
+          stats={mirror.stats}
           status={status}
           onKey={onKey}
           onOpenText={() => setTextOpen(true)}
