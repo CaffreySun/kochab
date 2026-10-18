@@ -22,7 +22,7 @@ use tauri::{AppHandle, Emitter, WebviewWindow};
 use crate::error::{CommandError, CommandResult};
 use crate::state::{state, SessionHandle};
 
-/// 事件名，与 `@ac/ipc-contract` 的 `EVENTS` 一字不差。
+/// 事件名，与 `@kochab/ipc-contract` 的 `EVENTS` 一字不差。
 const EVENTS_META: &str = "session://meta";
 const EVENTS_VIDEO: &str = "session://video";
 const EVENTS_SIZE: &str = "session://size";
@@ -128,7 +128,7 @@ impl SessionStartOptions {
     }
 }
 
-/// 触摸动作，取值与 `@ac/ipc-contract` 一致。
+/// 触摸动作，取值与 `@kochab/ipc-contract` 一致。
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TouchActionPayload {
@@ -304,7 +304,7 @@ pub async fn session_stats(app: AppHandle, session_id: u32) -> CommandResult<Ses
 }
 
 /// 触摸事件。坐标是**设备像素**，显示坐标到设备坐标的换算在渲染进程完成
-/// （`@ac/scrcpy-web` 的 `clientPointToDevice`）。
+/// （`@kochab/scrcpy-web` 的 `clientPointToDevice`）。
 #[tauri::command]
 pub async fn session_touch(
     app: AppHandle,
@@ -670,7 +670,7 @@ mod tests {
         ] {
             assert!(
                 contract.contains(name),
-                "事件 {name} 未登记在 @ac/ipc-contract"
+                "事件 {name} 未登记在 @kochab/ipc-contract"
             );
         }
     }

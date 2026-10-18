@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Loading } from 'tdesign-react';
-import type { DeviceInfo } from '@ac/ipc-contract';
+import type { DeviceInfo } from '@kochab/ipc-contract';
 import type { Api } from '../../ipc';
 import { PREVIEW_PRIORITY, useMirror } from '../mirror/useMirror';
 
@@ -72,21 +72,21 @@ export function DevicePreview({ api, device, enabled }: DevicePreviewProps) {
   }, [status, enabled, device.serial, device.state, start]);
 
   if (!enabled) {
-    return <span className="ac-preview__placeholder">预览已关闭</span>;
+    return <span className="kochab-preview__placeholder">预览已关闭</span>;
   }
 
   // 同一台设备同时只能有一条会话：投屏窗口接管后缩略图必须让位，
   // 并明确告知原因，而不是留一块黑画布让人以为坏了。
   if (status === 'stopped' || status === 'busy') {
-    return <span className="ac-preview__placeholder">投屏占用中</span>;
+    return <span className="kochab-preview__placeholder">投屏占用中</span>;
   }
 
   return (
-    <div className="ac-preview">
-      <canvas ref={canvasRef} className="ac-preview__canvas" data-testid="preview-canvas" />
+    <div className="kochab-preview">
+      <canvas ref={canvasRef} className="kochab-preview__canvas" data-testid="preview-canvas" />
       {status === 'starting' ? <Loading loading size="small" /> : null}
       {status === 'error' ? (
-        <span className="ac-preview__error" title={mirror.error ?? undefined}>
+        <span className="kochab-preview__error" title={mirror.error ?? undefined}>
           预览失败
         </span>
       ) : null}

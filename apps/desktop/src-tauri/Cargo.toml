@@ -1,20 +1,20 @@
 [package]
-name = "android-controller"
-description = "Android Controller 桌面应用"
-authors = ["Android Controller Contributors"]
+name = "kochab"
+description = "Kochab 桌面应用"
+authors = ["Kochab Contributors"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-default-run = "android-controller"
+default-run = "kochab"
 
 [lib]
-name = "android_controller_lib"
+name = "kochab_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [[bin]]
-name = "android-controller"
+name = "kochab"
 path = "src/main.rs"
 
 [build-dependencies]

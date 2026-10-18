@@ -11,8 +11,8 @@ export default {
       { message: '自定义属性必须使用 kebab-case' },
     ],
     'selector-class-pattern': [
-      '^ac-[a-z0-9]+(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$',
-      { message: '类名必须使用 ac- 前缀的 BEM 写法（元素用 __，修饰符用 --）' },
+      '^kochab-[a-z0-9]+(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$',
+      { message: '类名必须使用 kochab- 前缀的 BEM 写法（元素用 __，修饰符用 --）' },
     ],
     // Vite / bundler 解析 CSS import，不使用 url() 包裹
     'import-notation': null,

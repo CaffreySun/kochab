@@ -7,7 +7,7 @@ import type {
   DeviceOverview,
   DisplayOverride,
   StorageVolume,
-} from '@ac/ipc-contract';
+} from '@kochab/ipc-contract';
 import type { Api } from '../ipc';
 import { toMessage } from '../ipc';
 
@@ -71,15 +71,15 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
 
   if (!serial) {
     return (
-      <div className="ac-overview">
-        <p className="ac-overview__empty">设备未连接，无法读取概览。</p>
+      <div className="kochab-overview">
+        <p className="kochab-overview__empty">设备未连接，无法读取概览。</p>
       </div>
     );
   }
 
   return (
-    <div className="ac-overview">
-      <div className="ac-page__toolbar">
+    <div className="kochab-overview">
+      <div className="kochab-page__toolbar">
         <Button
           icon={<RefreshIcon />}
           loading={status === 'loading'}
@@ -103,13 +103,13 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
       ) : null}
 
       {overview ? (
-        <div className="ac-overview__grid">
-          <section className="ac-overview__card">
+        <div className="kochab-overview__grid">
+          <section className="kochab-overview__card">
             <h3>电池</h3>
             {overview.battery ? (
               <>
-                <div className="ac-overview__headline">
-                  <span className="ac-overview__big">
+                <div className="kochab-overview__headline">
+                  <span className="kochab-overview__big">
                     {overview.battery.level === null ? '—' : `${overview.battery.level}%`}
                   </span>
                   <Tag size="small" variant="light-outline">
@@ -124,18 +124,18 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
                 {overview.battery.level === null ? null : (
                   <Progress percentage={overview.battery.level} size="small" theme="line" />
                 )}
-                <dl className="ac-overview__rows">
+                <dl className="kochab-overview__rows">
                   <Row label="温度" value={formatTemperature(overview.battery.temperatureC)} />
                   <Row label="电压" value={formatVoltage(overview.battery.voltageMv)} />
                   <Row label="电池类型" value={overview.battery.technology ?? '—'} />
                 </dl>
               </>
             ) : (
-              <p className="ac-overview__empty">读不到电池信息。</p>
+              <p className="kochab-overview__empty">读不到电池信息。</p>
             )}
           </section>
 
-          <section className="ac-overview__card">
+          <section className="kochab-overview__card">
             <h3>存储</h3>
             {overview.storage ? (
               <>
@@ -145,11 +145,11 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
                 ) : null}
               </>
             ) : (
-              <p className="ac-overview__empty">读不到存储信息。</p>
+              <p className="kochab-overview__empty">读不到存储信息。</p>
             )}
           </section>
 
-          <section className="ac-overview__card">
+          <section className="kochab-overview__card">
             <h3>内存</h3>
             {overview.memory ? (
               <VolumeRow
@@ -161,29 +161,29 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
                 }}
               />
             ) : (
-              <p className="ac-overview__empty">读不到内存信息。</p>
+              <p className="kochab-overview__empty">读不到内存信息。</p>
             )}
           </section>
 
-          <section className="ac-overview__card">
+          <section className="kochab-overview__card">
             <h3>网络</h3>
-            <dl className="ac-overview__rows">
+            <dl className="kochab-overview__rows">
               <Row label="WLAN 地址" value={overview.network.wlanIpv4 ?? '未连接 Wi-Fi'} />
             </dl>
           </section>
 
-          <section className="ac-overview__card">
+          <section className="kochab-overview__card">
             <h3>显示</h3>
             {display ? (
               <>
-                <dl className="ac-overview__rows">
+                <dl className="kochab-overview__rows">
                   <Row label="分辨率" value={display.overrideSize ?? display.physicalSize ?? '—'} />
                   <Row
                     label="密度"
                     value={`${display.overrideDensity ?? display.physicalDensity ?? '—'} dpi`}
                   />
                 </dl>
-                <div className="ac-overview__display-foot">
+                <div className="kochab-overview__display-foot">
                   {display.overrideSize || display.overrideDensity ? (
                     <>
                       <Tag size="small" theme="warning" variant="light-outline">
@@ -200,18 +200,18 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
                       </Button>
                     </>
                   ) : (
-                    <span className="ac-overview__muted">系统默认显示参数</span>
+                    <span className="kochab-overview__muted">系统默认显示参数</span>
                   )}
                 </div>
               </>
             ) : (
-              <p className="ac-overview__empty">读不到显示信息。</p>
+              <p className="kochab-overview__empty">读不到显示信息。</p>
             )}
           </section>
 
-          <section className="ac-overview__card">
+          <section className="kochab-overview__card">
             <h3>系统</h3>
-            <dl className="ac-overview__rows">
+            <dl className="kochab-overview__rows">
               <Row
                 label="Android"
                 value={
@@ -235,7 +235,7 @@ export function OverviewPage({ api, device }: OverviewPageProps) {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="ac-overview__row">
+    <div className="kochab-overview__row">
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
@@ -246,15 +246,15 @@ function VolumeRow({ label, volume }: { label: string; volume: StorageVolume }) 
   const usedPct =
     volume.totalKb > 0 ? Math.min(100, Math.round((volume.usedKb / volume.totalKb) * 100)) : 0;
   return (
-    <div className="ac-overview__volume">
-      <div className="ac-overview__volume-head">
+    <div className="kochab-overview__volume">
+      <div className="kochab-overview__volume-head">
         <span>{label}</span>
-        <span className="ac-overview__muted">
+        <span className="kochab-overview__muted">
           {formatSize(volume.usedKb)} / {formatSize(volume.totalKb)}
         </span>
       </div>
       <Progress percentage={usedPct} size="small" theme="line" />
-      <p className="ac-overview__muted">可用 {formatSize(volume.availableKb)}</p>
+      <p className="kochab-overview__muted">可用 {formatSize(volume.availableKb)}</p>
     </div>
   );
 }

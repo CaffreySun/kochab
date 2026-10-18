@@ -13,8 +13,8 @@ import {
   VideoCameraIcon,
   ViewModuleIcon,
 } from 'tdesign-icons-react';
-import { ANDROID_KEY, KEYCODE_BACK } from '@ac/scrcpy-web';
-import type { SessionInfo, SessionStats } from '@ac/ipc-contract';
+import { ANDROID_KEY, KEYCODE_BACK } from '@kochab/scrcpy-web';
+import type { SessionInfo, SessionStats } from '@kochab/ipc-contract';
 import type { DetailPanel } from '../../windowMode';
 import { formatDuration } from '../recording/useRecording';
 import type { MirrorStatus } from './useMirror';
@@ -72,7 +72,7 @@ export function MirrorRail({
   ];
 
   return (
-    <nav aria-label="投屏操作" className="ac-mirror-rail">
+    <nav aria-label="投屏操作" className="kochab-mirror-rail">
       <Tooltip content="返回" placement="left">
         <Button
           aria-label="返回键"
@@ -193,7 +193,7 @@ export function MirrorRail({
         <Button aria-label="更多投屏操作" icon={<MoreIcon />} size="small" variant="outline" />
       </Dropdown>
 
-      <div className="ac-mirror-rail__divider" role="presentation" />
+      <div className="kochab-mirror-rail__divider" role="presentation" />
 
       {panels.map((item) => (
         <Tooltip key={item.key} content={item.label} placement="left">

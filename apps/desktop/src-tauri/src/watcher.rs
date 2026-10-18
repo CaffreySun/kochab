@@ -15,7 +15,7 @@ use tracing::{debug, info, warn};
 
 use crate::state::state;
 
-/// 事件名，必须与 `@ac/ipc-contract` 的 `EVENTS.deviceChanged` 一致。
+/// 事件名，必须与 `@kochab/ipc-contract` 的 `EVENTS.deviceChanged` 一致。
 const EVENT_DEVICE_CHANGED: &str = "device://changed";
 const EVENT_ADB_SERVER_LOST: &str = "adb://server-lost";
 

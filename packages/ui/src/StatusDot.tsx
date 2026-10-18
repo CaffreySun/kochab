@@ -1,4 +1,4 @@
-import type { DeviceConnectionState } from '@ac/ipc-contract';
+import type { DeviceConnectionState } from '@kochab/ipc-contract';
 
 export interface StatusDotProps {
   state: DeviceConnectionState;
@@ -33,13 +33,15 @@ export function StatusDot({ state, showLabel = false, className }: StatusDotProp
 
   return (
     <span
-      className={['ac-status-dot', `is-${tagColor}`, className].filter(Boolean).join(' ')}
+      className={['kochab-status-dot', `is-${tagColor}`, className].filter(Boolean).join(' ')}
       data-state={state}
       data-testid="device-status"
     >
-      <span aria-hidden className="ac-status-dot__dot" />
+      <span aria-hidden className="kochab-status-dot__dot" />
       {/* 文案始终存在：不可见时供读屏器朗读，可见时直接展示，避免重复朗读 */}
-      <span className={showLabel ? 'ac-status-dot__label' : 'ac-visually-hidden'}>{label}</span>
+      <span className={showLabel ? 'kochab-status-dot__label' : 'kochab-visually-hidden'}>
+        {label}
+      </span>
     </span>
   );
 }

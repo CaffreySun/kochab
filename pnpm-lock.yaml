@@ -159,13 +159,13 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@ac/ipc-contract':
+      '@kochab/ipc-contract':
         specifier: workspace:*
         version: link:../../packages/ipc-contract
-      '@ac/scrcpy-web':
+      '@kochab/scrcpy-web':
         specifier: workspace:*
         version: link:../../packages/scrcpy-web
-      '@ac/ui':
+      '@kochab/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@tauri-apps/api':
@@ -253,7 +253,7 @@ importers:
 
   packages/scrcpy-web:
     dependencies:
-      '@ac/ipc-contract':
+      '@kochab/ipc-contract':
         specifier: workspace:*
         version: link:../ipc-contract
     devDependencies:
@@ -272,7 +272,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@ac/ipc-contract':
+      '@kochab/ipc-contract':
         specifier: workspace:*
         version: link:../ipc-contract
       react:

@@ -24,7 +24,7 @@
 
 Rust 用 `scrcpy-protocol` 编码后写入控制 socket。
 
-坐标换算留在渲染进程（`@ac/scrcpy-web` 的 `clientPointToDevice`），
+坐标换算留在渲染进程（`@kochab/scrcpy-web` 的 `clientPointToDevice`），
 因为只有它知道画布的实际显示尺寸。
 
 ## 理由

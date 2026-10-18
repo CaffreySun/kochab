@@ -1,7 +1,7 @@
 body {
   margin: 0;
-  color: var(--ac-text-primary);
-  background: var(--ac-bg-page);
+  color: var(--kochab-text-primary);
+  background: var(--kochab-bg-page);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Roboto,
     'Helvetica Neue', Arial, sans-serif;
@@ -15,7 +15,7 @@ body {
 }
 
 /* 启动占位：API 还没就绪时的兜底 */
-.ac-app {
+.kochab-app {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,24 +26,24 @@ body {
  * 应用外壳：左侧导航 + 右侧内容
  * ------------------------------------------------------------------ */
 
-.ac-shell {
+.kochab-shell {
   display: flex;
   height: 100vh;
   overflow: hidden;
 }
 
-.ac-shell__sidebar {
+.kochab-shell__sidebar {
   display: flex;
   flex: 0 0 76px;
   flex-direction: column;
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
   align-items: center;
-  padding: var(--ac-space-md) 0;
-  background: var(--ac-bg-container);
-  border-right: 1px solid var(--ac-border-color);
+  padding: var(--kochab-space-md) 0;
+  background: var(--kochab-bg-container);
+  border-right: 1px solid var(--kochab-border-color);
 }
 
-.ac-shell__brand {
+.kochab-shell__brand {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,13 +52,13 @@ body {
 }
 
 /* 图标自带 1024×1024 的固有尺寸，这里必须显式约束，否则会撑满布局 */
-.ac-shell__logo {
+.kochab-shell__logo {
   width: 32px;
   height: 32px;
   object-fit: contain;
 }
 
-.ac-shell__nav-badge {
+.kochab-shell__nav-badge {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -73,14 +73,14 @@ body {
   text-align: center;
 }
 
-.ac-shell__nav {
+.kochab-shell__nav {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   width: 100%;
 }
 
-.ac-shell__nav-item {
+.kochab-shell__nav-item {
   /* 角标要相对导航项定位 */
   position: relative;
   display: flex;
@@ -89,7 +89,7 @@ body {
   align-items: center;
   width: 100%;
   padding: 8px 0;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
   font-size: 12px;
   line-height: 1;
   background: none;
@@ -97,17 +97,17 @@ body {
   cursor: pointer;
 }
 
-.ac-shell__nav-item:hover {
-  color: var(--ac-text-primary);
-  background: var(--ac-bg-hover);
+.kochab-shell__nav-item:hover {
+  color: var(--kochab-text-primary);
+  background: var(--kochab-bg-hover);
 }
 
-.ac-shell__nav-item--active {
+.kochab-shell__nav-item--active {
   color: var(--td-brand-color);
-  background: var(--ac-bg-hover);
+  background: var(--kochab-bg-hover);
 }
 
-.ac-shell__content {
+.kochab-shell__content {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -115,35 +115,35 @@ body {
   overflow: hidden;
 }
 
-.ac-shell__header {
+.kochab-shell__header {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
   align-items: center;
   justify-content: space-between;
-  padding: var(--ac-space-md) var(--ac-space-lg);
-  border-bottom: 1px solid var(--ac-border-color);
+  padding: var(--kochab-space-md) var(--kochab-space-lg);
+  border-bottom: 1px solid var(--kochab-border-color);
 }
 
-.ac-shell__title {
+.kochab-shell__title {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
 }
 
-.ac-shell__toolbar {
+.kochab-shell__toolbar {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
 }
 
-.ac-shell__body {
+.kochab-shell__body {
   flex: 1;
 
   /* 必须显式归零：column flex item 的 min-width 默认是 auto，
      会被子元素的 max-content 撑开，导致内部工具栏永远「够宽」而不换行。 */
   min-width: 0;
-  padding: var(--ac-space-lg);
+  padding: var(--kochab-space-lg);
   overflow: auto;
 }
 
@@ -151,154 +151,154 @@ body {
  * 批量操作条
  * ------------------------------------------------------------------ */
 
-.ac-batch {
+.kochab-batch {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-sm) var(--ac-space-md);
+  gap: var(--kochab-space-sm) var(--kochab-space-md);
   align-items: center;
-  padding: var(--ac-space-sm) var(--ac-space-md);
-  margin-bottom: var(--ac-space-md);
-  border-radius: var(--ac-radius-md);
-  background: var(--ac-bg-page);
+  padding: var(--kochab-space-sm) var(--kochab-space-md);
+  margin-bottom: var(--kochab-space-md);
+  border-radius: var(--kochab-radius-md);
+  background: var(--kochab-bg-page);
 }
 
-.ac-batch > * {
+.kochab-batch > * {
   flex: none;
 }
 
-.ac-batch__result {
+.kochab-batch__result {
   margin: 0;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
 }
 
 /* 任务页 */
-.ac-tasks {
+.kochab-tasks {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
 }
 
-.ac-tasks__toolbar {
+.kochab-tasks__toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
 }
 
-.ac-tasks__intro {
+.kochab-tasks__intro {
   max-width: 720px;
   margin: 0;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
 
-.ac-task {
-  padding: var(--ac-space-md);
-  border-radius: var(--ac-radius-md);
-  background: var(--ac-bg-page);
-  border: 1px solid var(--ac-border-color);
+.kochab-task {
+  padding: var(--kochab-space-md);
+  border-radius: var(--kochab-radius-md);
+  background: var(--kochab-bg-page);
+  border: 1px solid var(--kochab-border-color);
 }
 
-.ac-task__head {
+.kochab-task__head {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--ac-space-sm);
+  margin-bottom: var(--kochab-space-sm);
 }
 
-.ac-task__summary,
-.ac-task__time {
-  color: var(--ac-text-secondary);
+.kochab-task__summary,
+.kochab-task__time {
+  color: var(--kochab-text-secondary);
   font-size: 12px;
 }
 
-.ac-task__items {
-  margin: var(--ac-space-sm) 0 0;
+.kochab-task__items {
+  margin: var(--kochab-space-sm) 0 0;
   padding: 0;
   list-style: none;
   max-height: 220px;
   overflow: auto;
 }
 
-.ac-task__item {
+.kochab-task__item {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: baseline;
   padding: 3px 0;
-  border-bottom: 1px dashed var(--ac-border-color);
+  border-bottom: 1px dashed var(--kochab-border-color);
   font-size: 13px;
 }
 
-.ac-task__item:last-child {
+.kochab-task__item:last-child {
   border-bottom: none;
 }
 
-.ac-task__serial {
+.kochab-task__serial {
   flex: none;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.ac-task__detail {
-  color: var(--ac-text-secondary);
+.kochab-task__detail {
+  color: var(--kochab-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ac-task__item--bad .ac-task__serial,
-.ac-task__item--bad .ac-task__detail {
+.kochab-task__item--bad .kochab-task__serial,
+.kochab-task__item--bad .kochab-task__detail {
   color: var(--td-error-color);
 }
 
 /* 分组对话框：选项 + 新建 + 删除 */
-.ac-group {
+.kochab-group {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
 }
 
-.ac-group__remove {
+.kochab-group__remove {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
 }
 
-.ac-group__hint {
+.kochab-group__hint {
   margin: 0;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
   font-size: 12px;
 }
 
-.ac-connect {
+.kochab-connect {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-sm);
-  padding: var(--ac-space-sm) 0;
+  gap: var(--kochab-space-sm);
+  padding: var(--kochab-space-sm) 0;
 }
 
-.ac-connect__hint {
+.kochab-connect__hint {
   margin: 0;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
 
-.ac-connect__hint code {
+.kochab-connect__hint code {
   padding: 0 4px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  background: var(--ac-bg-page);
+  background: var(--kochab-bg-page);
   border-radius: 3px;
 }
 
-.ac-connect__recent {
+.kochab-connect__recent {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   align-items: center;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
@@ -310,49 +310,49 @@ body {
  * 点应用/概览/文件时整个窗口向右变宽，多出一块固定宽度的面板。
  * ------------------------------------------------------------------ */
 
-.ac-detail {
+.kochab-detail {
   /* 竖排按钮栏的固定宽度：竖屏定画面宽度、横屏定画面高度时都要扣掉它。
      值与 `useDetailWindow.ts` 里的 RAIL_WIDTH 保持一致。 */
-  --ac-rail-width: 34px;
+  --kochab-rail-width: 34px;
 
   display: flex;
   box-sizing: border-box;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   height: 100vh;
-  padding: var(--ac-space-xs);
+  padding: var(--kochab-space-xs);
   overflow: hidden;
 }
 
 /* 横屏时面板放到画面下方：左右布局在宽扁窗口里会把画面挤成一条 */
-.ac-detail[data-orientation='landscape'] {
+.kochab-detail[data-orientation='landscape'] {
   flex-direction: column;
 }
 
 /* 画面 + 竖排按钮栏。竖屏时在左侧一列，横屏时占满上方一行。 */
-.ac-detail__main {
+.kochab-detail__main {
   display: flex;
   flex: none;
   flex-direction: row;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   min-width: 0;
   min-height: 0;
 }
 
-.ac-detail[data-orientation='landscape'] .ac-detail__main {
+.kochab-detail[data-orientation='landscape'] .kochab-detail__main {
   flex: none;
   min-height: 0;
 }
 
 /* 画面按「高度 × 宽高比」定宽（竖屏），横屏反过来按宽度定高。
    这样拖动窗口时只有面板那一边变，画面本身不会被压歪或拉出黑边。 */
-.ac-mirror-stage {
+.kochab-mirror-stage {
   position: relative;
   display: flex;
   flex: none;
   align-items: center;
   justify-content: center;
   height: 100%;
-  aspect-ratio: var(--ac-mirror-aspect, 9 / 16);
+  aspect-ratio: var(--kochab-mirror-aspect, 9 / 16);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -360,32 +360,32 @@ body {
   border-radius: 8px;
 }
 
-.ac-detail[data-orientation='landscape'] .ac-mirror-stage {
+.kochab-detail[data-orientation='landscape'] .kochab-mirror-stage {
   /* 横屏时画面由宽度定高：必须扣掉右侧按钮栏，否则 100% 宽度会把按钮栏挤出窗口 */
-  width: calc(100% - var(--ac-rail-width) - var(--ac-space-xs));
+  width: calc(100% - var(--kochab-rail-width) - var(--kochab-space-xs));
   height: auto;
 }
 
-.ac-mirror-stage__canvas {
+.kochab-mirror-stage__canvas {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   touch-action: none;
 }
 
-.ac-mirror-stage__overlay {
+.kochab-mirror-stage__overlay {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
   justify-content: center;
-  padding: var(--ac-space-md);
+  padding: var(--kochab-space-md);
   text-align: center;
 }
 
-.ac-mirror-stage__hint {
+.kochab-mirror-stage__hint {
   max-width: 28ch;
   margin: 0;
   color: #b6bcc6;
@@ -393,26 +393,26 @@ body {
 }
 
 /* 竖排按钮栏：窄，所以几乎不影响画面宽度 */
-.ac-mirror-rail {
+.kochab-mirror-rail {
   display: flex;
   flex: none;
   flex-direction: column;
   gap: 4px;
   align-items: center;
-  width: var(--ac-rail-width);
+  width: var(--kochab-rail-width);
   max-height: 100%;
   overflow-y: auto;
 }
 
-.ac-mirror-rail__divider {
+.kochab-mirror-rail__divider {
   width: 60%;
   height: 1px;
   margin: 4px 0;
-  background: var(--ac-border-color);
+  background: var(--kochab-border-color);
 }
 
 /* 面板吃掉剩余空间：竖屏吃宽度（在右侧），横屏吃高度（在下方） */
-.ac-detail__panel {
+.kochab-detail__panel {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -421,25 +421,25 @@ body {
   overflow: hidden;
 }
 
-.ac-detail[data-orientation='landscape'] .ac-detail__panel {
+.kochab-detail[data-orientation='landscape'] .kochab-detail__panel {
   min-width: 0;
   min-height: 180px;
 }
 
-.ac-detail__panel > * {
+.kochab-detail__panel > * {
   flex: 1;
   min-height: 0;
 }
 
-.ac-detail__text {
+.kochab-detail__text {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
 }
 
-.ac-detail__text-actions {
+.kochab-detail__text-actions {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   justify-content: flex-end;
 }
 
@@ -449,22 +449,22 @@ body {
 
 /* 工具栏：允许换行并各自收缩。
    不要用 space-between——两侧合计宽度超过容器时，右侧会被挤出可视区而不是换行。 */
-.ac-devices__toolbar {
+.kochab-devices__toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
-  margin-bottom: var(--ac-space-md);
+  margin-bottom: var(--kochab-space-md);
 }
 
-.ac-devices__toolbar > * {
+.kochab-devices__toolbar > * {
   flex: none;
 }
 
-.ac-device-grid {
+.kochab-device-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
   align-items: start;
 }
 
@@ -472,7 +472,7 @@ body {
  * 缩略图
  * ------------------------------------------------------------------ */
 
-.ac-preview {
+.kochab-preview {
   position: relative;
   display: flex;
   align-items: center;
@@ -481,15 +481,15 @@ body {
   height: 100%;
 }
 
-.ac-preview__canvas {
+.kochab-preview__canvas {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
 }
 
 /* 缩略图舞台底色是 #101114，占位文案必须用亮色才看得清。
-   深色底上用 --ac-text-placeholder 会几乎不可见。 */
-.ac-preview__placeholder {
+   深色底上用 --kochab-text-placeholder 会几乎不可见。 */
+.kochab-preview__placeholder {
   color: #b6bcc6;
   font-size: 12px;
   padding: 2px 8px;
@@ -498,7 +498,7 @@ body {
   text-align: center;
 }
 
-.ac-preview__error {
+.kochab-preview__error {
   position: absolute;
   bottom: 4px;
   color: var(--td-error-color);
@@ -509,11 +509,11 @@ body {
  * 应用 / 文件页（设备工作区内复用）
  * ------------------------------------------------------------------ */
 
-.ac-page {
+.kochab-page {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
 
   /* 面板高度有限：不给 min-height:0，flex 子项会被内容撑破外层 overflow:hidden，
      列表就再也滚不动了 */
@@ -522,39 +522,39 @@ body {
 }
 
 /* 列表/表格的滚动容器：工具栏固定在上方，只有这一块滚动 */
-.ac-page__scroll {
+.kochab-page__scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 
-.ac-page__toolbar {
+.kochab-page__toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
 }
 
-.ac-page__toolbar > * {
+.kochab-page__toolbar > * {
   flex: none;
 }
 
-.ac-page__inline-switch {
+.kochab-page__inline-switch {
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
   font-size: 13px;
 }
 
-.ac-app-cell {
+.kochab-app-cell {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
   line-height: 1.3;
 }
 
-.ac-app-cell--button {
+.kochab-app-cell--button {
   width: 100%;
   padding: 0;
   color: inherit;
@@ -565,17 +565,17 @@ body {
   cursor: pointer;
 }
 
-.ac-app-cell--button:hover .ac-app-cell__name {
+.kochab-app-cell--button:hover .kochab-app-cell__name {
   color: var(--td-brand-color);
 }
 
-.ac-app-cell__text {
+.kochab-app-cell__text {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.ac-app-avatar {
+.kochab-app-avatar {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -588,14 +588,14 @@ body {
   border-radius: 8px;
 }
 
-.ac-app-avatar--large {
+.kochab-app-avatar--large {
   width: 44px;
   height: 44px;
   font-size: 20px;
   border-radius: 10px;
 }
 
-.ac-app-cell__name {
+.kochab-app-cell__name {
   display: inline-flex;
   gap: 6px;
   align-items: center;
@@ -605,67 +605,67 @@ body {
   white-space: nowrap;
 }
 
-.ac-app-cell__package {
+.kochab-app-cell__package {
   overflow: hidden;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ac-app-detail {
+.kochab-app-detail {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-md);
-  padding: var(--ac-space-sm) 0;
+  gap: var(--kochab-space-md);
+  padding: var(--kochab-space-sm) 0;
 }
 
-.ac-app-detail__head {
+.kochab-app-detail__head {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
 }
 
-.ac-app-detail__muted {
-  color: var(--ac-text-placeholder);
+.kochab-app-detail__muted {
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
-.ac-app-detail__rows {
+.kochab-app-detail__rows {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin: 0;
 }
 
-.ac-app-detail__row {
+.kochab-app-detail__row {
   display: flex;
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
 }
 
-.ac-app-detail__row dt {
+.kochab-app-detail__row dt {
   flex: none;
   width: 84px;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
-.ac-app-detail__row dd {
+.kochab-app-detail__row dd {
   min-width: 0;
   margin: 0;
   word-break: break-all;
 }
 
-.ac-app-detail__mono {
+.kochab-app-detail__mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
 }
 
-.ac-files__breadcrumb {
-  margin-bottom: var(--ac-space-xs);
+.kochab-files__breadcrumb {
+  margin-bottom: var(--kochab-space-xs);
 }
 
-.ac-files__entry {
+.kochab-files__entry {
   padding: 0;
   color: inherit;
   font: inherit;
@@ -674,8 +674,8 @@ body {
   cursor: pointer;
 }
 
-.ac-files__entry:disabled {
-  color: var(--ac-text-secondary);
+.kochab-files__entry:disabled {
+  color: var(--kochab-text-secondary);
   cursor: default;
 }
 
@@ -683,105 +683,105 @@ body {
  * 设备概览
  * ------------------------------------------------------------------ */
 
-.ac-overview {
+.kochab-overview {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
   min-height: 0;
-  padding-right: var(--ac-space-xs);
+  padding-right: var(--kochab-space-xs);
   overflow: auto;
 }
 
-.ac-overview__grid {
+.kochab-overview__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--ac-space-md);
+  gap: var(--kochab-space-md);
 }
 
-.ac-overview__card {
+.kochab-overview__card {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-xs);
-  padding: var(--ac-space-md);
-  background: var(--ac-bg-container);
-  border: 1px solid var(--ac-border-color);
+  gap: var(--kochab-space-xs);
+  padding: var(--kochab-space-md);
+  background: var(--kochab-bg-container);
+  border: 1px solid var(--kochab-border-color);
   border-radius: 8px;
 }
 
-.ac-overview__card h3 {
+.kochab-overview__card h3 {
   margin: 0;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
   font-size: 13px;
   font-weight: 600;
 }
 
-.ac-overview__headline {
+.kochab-overview__headline {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   align-items: center;
 }
 
-.ac-overview__big {
+.kochab-overview__big {
   font-size: 22px;
   font-weight: 600;
 }
 
-.ac-overview__rows {
+.kochab-overview__rows {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin: 0;
 }
 
-.ac-overview__display-foot {
+.kochab-overview__display-foot {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
   justify-content: space-between;
-  padding-top: var(--ac-space-xs);
+  padding-top: var(--kochab-space-xs);
 }
 
-.ac-overview__row {
+.kochab-overview__row {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
 }
 
-.ac-overview__row dt {
+.kochab-overview__row dt {
   flex: 0 0 84px;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
-.ac-overview__row dd {
+.kochab-overview__row dd {
   min-width: 0;
   margin: 0;
   font-size: 13px;
   word-break: break-all;
 }
 
-.ac-overview__volume {
+.kochab-overview__volume {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.ac-overview__volume-head {
+.kochab-overview__volume-head {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
 }
 
-.ac-overview__muted {
+.kochab-overview__muted {
   margin: 0;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
-.ac-overview__empty {
+.kochab-overview__empty {
   margin: 0;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 13px;
 }
 
@@ -789,58 +789,58 @@ body {
  * 设置
  * ------------------------------------------------------------------ */
 
-.ac-settings {
+.kochab-settings {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-lg);
+  gap: var(--kochab-space-lg);
   max-width: 760px;
 }
 
-.ac-settings__heading {
-  margin: 0 0 var(--ac-space-xs);
+.kochab-settings__heading {
+  margin: 0 0 var(--kochab-space-xs);
   font-size: 15px;
   font-weight: 600;
 }
 
-.ac-settings__hint {
-  margin: 0 0 var(--ac-space-sm);
-  color: var(--ac-text-placeholder);
+.kochab-settings__hint {
+  margin: 0 0 var(--kochab-space-sm);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
-.ac-settings__presets {
+.kochab-settings__presets {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   align-items: center;
-  margin-bottom: var(--ac-space-md);
+  margin-bottom: var(--kochab-space-md);
 }
 
-.ac-settings__diagnostics {
+.kochab-settings__diagnostics {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-xs);
-  margin: var(--ac-space-sm) 0 0;
+  gap: var(--kochab-space-xs);
+  margin: var(--kochab-space-sm) 0 0;
 }
 
-.ac-settings__diagnostics > div {
+.kochab-settings__diagnostics > div {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
 }
 
-.ac-settings__diagnostics dt {
+.kochab-settings__diagnostics dt {
   flex: 0 0 110px;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
-.ac-settings__diagnostics dd {
+.kochab-settings__diagnostics dd {
   min-width: 0;
   margin: 0;
   word-break: break-all;
 }
 
-.ac-settings__problems {
+.kochab-settings__problems {
   margin: 0;
   padding-left: 1.2em;
 }
@@ -849,49 +849,49 @@ body {
  * 「更多 -> 命令行」弹层
  * ------------------------------------------------------------------ */
 
-.ac-shell-popup {
+.kochab-shell-popup {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   width: 360px;
   max-width: 90vw;
-  padding: var(--ac-space-md);
+  padding: var(--kochab-space-md);
 }
 
-.ac-shell-popup__actions {
+.kochab-shell-popup__actions {
   display: flex;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   justify-content: flex-end;
 }
 
-.ac-shell-popup__result {
+.kochab-shell-popup__result {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-xs);
-  padding-top: var(--ac-space-sm);
-  border-top: 1px solid var(--ac-border-color);
+  gap: var(--kochab-space-xs);
+  padding-top: var(--kochab-space-sm);
+  border-top: 1px solid var(--kochab-border-color);
 }
 
-.ac-shell-popup__result-head {
+.kochab-shell-popup__result-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
 /* 命令输出：等宽字体 + 限高可滚动，长输出不能把弹层撑成无限高 */
-.ac-shell-popup__output {
+.kochab-shell-popup__output {
   max-height: 240px;
   margin: 0;
-  padding: var(--ac-space-sm);
+  padding: var(--kochab-space-sm);
   overflow: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-all;
-  background: var(--ac-bg-page);
+  background: var(--kochab-bg-page);
   border-radius: 4px;
 }
 
@@ -899,53 +899,53 @@ body {
  * 文件页路径行
  * ------------------------------------------------------------------ */
 
-.ac-files__path {
+.kochab-files__path {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   align-items: center;
   min-height: 28px;
 }
 
-.ac-shell-popup__quick {
+.kochab-shell-popup__quick {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-xs);
-  padding-bottom: var(--ac-space-xs);
-  border-bottom: 1px solid var(--ac-border-color);
+  gap: var(--kochab-space-xs);
+  padding-bottom: var(--kochab-space-xs);
+  border-bottom: 1px solid var(--kochab-border-color);
 }
 
-.ac-shell-popup__history {
+.kochab-shell-popup__history {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   align-items: center;
 }
 
-.ac-shell-popup__history-label {
-  color: var(--ac-text-placeholder);
+.kochab-shell-popup__history-label {
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }
 
 /* 历史按钮可能很长：限宽省略，完整内容放 title */
-.ac-shell-popup__history button {
+.kochab-shell-popup__history button {
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ac-rename {
+.kochab-rename {
   display: flex;
   flex-direction: column;
-  gap: var(--ac-space-sm);
+  gap: var(--kochab-space-sm);
   width: 360px;
   max-width: 90vw;
-  padding: var(--ac-space-md);
+  padding: var(--kochab-space-md);
 }
 
-.ac-rename__hint {
+.kochab-rename__hint {
   margin: 0;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
 }

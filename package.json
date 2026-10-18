@@ -1,9 +1,9 @@
 {
-  "name": "android-controller",
+  "name": "kochab",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "跨平台 Android 设备管理与投屏控制软件（adb + scrcpy 协议 / Tauri 2 + TDesign）",
+  "description": "Android 多设备控制面：设备、应用、文件、Shell 与实时投屏（adb + scrcpy / Tauri 2）",
   "packageManager": "pnpm@10.15.0",
   "engines": {
     "node": ">=22.11.0"
@@ -12,7 +12,7 @@
     "bootstrap": "node scripts/bootstrap.mjs",
     "doctor": "node scripts/doctor.mjs",
     "dev": "node scripts/dev.mjs",
-    "dev:web": "pnpm --filter @ac/desktop run dev:web",
+    "dev:web": "pnpm --filter @kochab/desktop run dev:web",
     "verify": "node scripts/verify.mjs",
     "verify:fast": "node scripts/verify.mjs --fast",
     "verify:fix": "node scripts/verify.mjs --fix",

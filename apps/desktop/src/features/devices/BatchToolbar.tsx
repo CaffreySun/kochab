@@ -55,7 +55,7 @@ export function BatchToolbar({
   };
 
   return (
-    <div className="ac-batch">
+    <div className="kochab-batch">
       <Space breakLine size="small">
         <Button
           disabled={busy}

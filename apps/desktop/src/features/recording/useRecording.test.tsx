@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { COMMANDS } from '@ac/ipc-contract';
+import { COMMANDS } from '@kochab/ipc-contract';
 import { createApi } from '../../ipc';
 import type { Api } from '../../ipc';
 import { createMockTransport } from '../../ipc/mock';

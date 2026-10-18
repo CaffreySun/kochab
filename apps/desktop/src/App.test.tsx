@@ -108,7 +108,7 @@ describe('App 外壳', () => {
     await user.type(maxSize, '720');
 
     await waitFor(() => {
-      const raw = window.localStorage.getItem('ac.mirrorOptions');
+      const raw = window.localStorage.getItem('kochab.mirrorOptions');
       expect(raw).not.toBeNull();
       expect(JSON.parse(raw!)).toMatchObject({ maxSize: 720 });
     });

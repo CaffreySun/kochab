@@ -3,7 +3,7 @@
  *
  * 序列化规则由 Rust 侧的 `#[serde(rename_all = "camelCase")]` 决定；
  * 此处字段名必须逐字匹配，否则运行时会拿到 undefined。
- * `cargo test -p android-controller` 会校验契约文件与命令清单的一致性。
+ * `cargo test -p kochab` 会校验契约文件与命令清单的一致性。
  */
 
 /** adb 设备连接状态 */

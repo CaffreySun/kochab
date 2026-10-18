@@ -18,7 +18,7 @@
 │    ├─ pages/                  设备 / 应用 / 文件 / 投屏      │
 │    ├─ features/               业务状态（hooks）                │
 │    ├─ ipc/                    Transport 抽象 + 契约封装        │
-│    └─ @ac/ui, @ac/scrcpy-web                                  │
+│    └─ @kochab/ui, @kochab/scrcpy-web                                  │
 └───────────────────────────┬──────────────────────────────────┘
                             │ Tauri IPC（命令 / 事件）
 ┌───────────────────────────┴──────────────────────────────────┐
@@ -104,7 +104,7 @@ Rust 侧只做拆包与转发，把**压缩后**的字节交给渲染进程用 W
    （约 4 倍膨胀），base64 只有 1.33 倍，且前端一次 `atob` 就能拿回字节。
 2. **Annex-B → AVCC 的转换在渲染进程做**。服务端下发的是 Annex-B，
    而 WebCodecs 的 H.264 解码要求 `description`（`AVCDecoderConfigurationRecord`）
-   与 AVCC 长度前缀。转换是纯函数，放在 `@ac/scrcpy-web` 里并且有单测。
+   与 AVCC 长度前缀。转换是纯函数，放在 `@kochab/scrcpy-web` 里并且有单测。
 
 代价是 **macOS WKWebView 需要 Safari 16.4+**（WebCodecs 首发版本），因此 `bundle.macOS.minimumSystemVersion`
 固定为 13.0。详见 [ADR-0006](adr/0006-video-decoding-in-renderer.md)。
@@ -118,7 +118,7 @@ Rust 侧只做拆包与转发，把**压缩后**的字节交给渲染进程用 W
 之所以不在渲染进程编码字节：那会让同一份字节布局有 Rust 与 TS 两处实现，
 而两者只能靠人工保持同步。现在字节布局的唯一实现仍然是 `scrcpy-protocol`，
 前端只负责「点击 → 设备像素坐标」这种它天然掌握的事情
-（`@ac/scrcpy-web` 的 `clientPointToDevice`）。
+（`@kochab/scrcpy-web` 的 `clientPointToDevice`）。
 
 ## 5. IPC 契约
 
@@ -178,10 +178,10 @@ packages/ipc-contract/src/
   卡片缩略图（`PREVIEW_PRIORITY`）与投屏窗口（`MIRROR_PRIORITY`）会争抢。
   低优先级不允许抢高优先级，否则两边交替黑屏。
   **绝不能复用已有会话**：SPS/PPS 只在建连时下发一次，后来者永远配不出解码器。
-- **投屏参数跨窗口共享靠 `localStorage`**（`ac.mirrorOptions`）：投屏窗口是独立
+- **投屏参数跨窗口共享靠 `localStorage`**（`kochab.mirrorOptions`）：投屏窗口是独立
   webview，由设置页写入、窗口启动时读取；`maxSize=0` 表示不下发 `max_size`，
   即跟随设备原始分辨率。
-- **设备分组与任务历史也只落地在本地**（`ac.deviceGroups` / `ac.tasks`）：
+- **设备分组与任务历史也只落地在本地**（`kochab.deviceGroups` / `kochab.tasks`）：
   它们只是列表组织方式与执行记录，不进入 Rust 命令面。
 - **批量操作走全局任务队列**（`TasksProvider`）：批量命令没有原子性，
   与其在按钮上谎报成功，不如把每台结果摊到任务页，由用户自己看哪台失败。
@@ -192,8 +192,8 @@ packages/ipc-contract/src/
 | --- | --- |
 | 新增平台 | `crates/android-core/src/toolchain.rs`（工具链定位）；其余不变 |
 | 新增设备属性 | `crates/android-core/src/device.rs` 的属性采集表 + `ipc-contract/types.ts` |
-| 新增控制消息 | `scrcpy-protocol`（编码）+ `@ac/scrcpy-web`（触发）+ 协议笔记 |
-| 换设计系统 | `@ac/ui` + `packages/ui/src/styles/index.css` 的语义令牌 |
+| 新增控制消息 | `scrcpy-protocol`（编码）+ `@kochab/scrcpy-web`（触发）+ 协议笔记 |
+| 换设计系统 | `@kochab/ui` + `packages/ui/src/styles/index.css` 的语义令牌 |
 | 新增文件操作 | `android-core/src/file.rs` + `commands.ts` 登记 |
 
 ## 8. 已知边界

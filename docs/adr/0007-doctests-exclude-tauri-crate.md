@@ -35,7 +35,7 @@ error LNK2001: 无法解析的外部符号 `__CxxFrameHandler3`
 
 ```bash
 cargo test --workspace --lib --bins --tests                              # 单元 + 集成
-cargo test --workspace --exclude android-controller --doc                # 文档测试
+cargo test --workspace --exclude kochab --doc                # 文档测试
 ```
 
 **后果**

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 /** 未分组设备的分组名。用常量而不是空串，才能在 UI 里明确显示出来。 */
 export const UNGROUPED = '未分组';
 
-const STORAGE_KEY = 'ac.deviceGroups';
+const STORAGE_KEY = 'kochab.deviceGroups';
 
 export interface DeviceGroups {
   /** serial -> 分组名 */

@@ -1,4 +1,4 @@
-import type { CommandName, EventName } from '@ac/ipc-contract';
+import type { CommandName, EventName } from '@kochab/ipc-contract';
 
 /** 取消事件订阅 */
 export type UnlistenFn = () => void;

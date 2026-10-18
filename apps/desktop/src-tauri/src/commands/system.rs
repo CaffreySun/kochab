@@ -19,7 +19,7 @@ pub struct AppSelfInfo {
 #[tauri::command]
 pub fn app_info() -> CommandResult<AppSelfInfo> {
     Ok(AppSelfInfo {
-        name: "Android Controller",
+        name: "Kochab",
         version: env!("CARGO_PKG_VERSION"),
         tauri_version: tauri::VERSION,
     })

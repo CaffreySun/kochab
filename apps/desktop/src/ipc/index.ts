@@ -24,8 +24,8 @@ import type {
   TransferResult,
   VideoFramePayload,
   WirelessEnabled,
-} from '@ac/ipc-contract';
-import { COMMANDS, EVENTS } from '@ac/ipc-contract';
+} from '@kochab/ipc-contract';
+import { COMMANDS, EVENTS } from '@kochab/ipc-contract';
 import type { Transport, UnlistenFn } from './transport';
 import { createMockTransport } from './mock';
 import { createTauriTransport, isTauriRuntime } from './tauri';
@@ -51,7 +51,7 @@ export function toCode(error: unknown, fallback = 'internal'): string {
 
 /**
  * 把命令名与其参数/返回类型绑定，编译期保证调用点与契约一致。
- * 新增命令只需在 `@ac/ipc-contract` 登记，这里自动获得类型。
+ * 新增命令只需在 `@kochab/ipc-contract` 登记，这里自动获得类型。
  */
 export function createApi(transport: Transport) {
   return {

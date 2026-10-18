@@ -20,7 +20,7 @@ import { run } from './lib/proc.mjs';
  * 显式排除根包：根包的同名脚本会再次调用本脚本，若被包含将造成无限递归。
  * （pnpm 默认也不包含根包，这里是双保险。）
  */
-const RECURSE = (script) => ['-r', '--filter', '!android-controller', 'run', script];
+const RECURSE = (script) => ['-r', '--filter', '!kochab', 'run', script];
 
 const { values, positionals } = parseArgs({
   options: {
@@ -79,13 +79,13 @@ const PLAN = {
     // 文档测试，导致 `__CxxFrameHandler3` 无法解析（见 docs/adr/0007）。
     rs: [
       ['cargo', ['test', '--workspace', '--lib', '--bins', '--tests']],
-      ['cargo', ['test', '--workspace', '--exclude', 'android-controller', '--doc']],
+      ['cargo', ['test', '--workspace', '--exclude', 'kochab', '--doc']],
     ],
     coverage: { ts: [RECURSE('test:coverage')] },
   },
   build: {
     title: '构建 (Vite / cargo build)',
-    ts: [['pnpm', ['--filter', '@ac/desktop', 'run', 'build']]],
+    ts: [['pnpm', ['--filter', '@kochab/desktop', 'run', 'build']]],
     rs: [['cargo', ['build', '--workspace']]],
   },
 };
@@ -94,7 +94,7 @@ const STAGE_ORDER = Object.keys(PLAN);
 
 function usage() {
   console.log(`
-${color.bold('Android Controller · 工程校验')}
+${color.bold('Kochab · 工程校验')}
 
   pnpm verify              完整流水线
   pnpm verify:fast         跳过构建

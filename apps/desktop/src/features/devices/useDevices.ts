@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { DeviceInfo } from '@ac/ipc-contract';
+import type { DeviceInfo } from '@kochab/ipc-contract';
 import { createApi, createDefaultTransport, type Api } from '../../ipc';
 
 export type DevicesStatus = 'loading' | 'ready' | 'error';

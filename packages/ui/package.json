@@ -1,5 +1,5 @@
 {
-  "name": "@ac/ui",
+  "name": "@kochab/ui",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@ac/ipc-contract": "workspace:*",
+    "@kochab/ipc-contract": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tdesign-icons-react": "catalog:",

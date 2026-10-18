@@ -98,7 +98,7 @@ export function App({ api: injected }: AppProps = {}) {
 
   if (!api) {
     return (
-      <div className="ac-app">
+      <div className="kochab-app">
         <Loading loading size="small" text="正在初始化…" />
       </div>
     );

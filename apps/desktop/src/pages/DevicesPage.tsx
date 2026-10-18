@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Dialog, Input, Select, Space, Tag } from 'tdesign-react';
 import { LinkIcon, RefreshIcon, SearchIcon } from 'tdesign-icons-react';
-import type { DeviceConnectionState, DeviceInfo } from '@ac/ipc-contract';
-import { EmptyState, type DeviceCardAction } from '@ac/ui';
+import type { DeviceConnectionState, DeviceInfo } from '@kochab/ipc-contract';
+import { EmptyState, type DeviceCardAction } from '@kochab/ui';
 import { DeviceRecordingCard } from '../features/recording/DeviceRecordingCard';
 import type { Api } from '../ipc';
 import { DevicePreview } from '../features/preview/DevicePreview';
@@ -28,7 +28,7 @@ export type WorkspaceTab = 'mirror' | 'apps' | 'files';
 
 type StateFilter = 'all' | DeviceConnectionState;
 
-const RECENT_ADDRESSES_KEY = 'ac.recentAddresses';
+const RECENT_ADDRESSES_KEY = 'kochab.recentAddresses';
 const RECENT_ADDRESSES_LIMIT = 5;
 
 function readRecentAddresses(): string[] {
@@ -197,7 +197,7 @@ export function DevicesPage({
 
   return (
     <>
-      <div className="ac-devices__toolbar">
+      <div className="kochab-devices__toolbar">
         {/* 单一 flex 容器：所有控件都是直接 flex item，换行行为完全可控。
             两个 <Space> 会各自占 max-content 宽度，右侧「刷新」会被挤出可视区。 */}
         <Select
@@ -296,7 +296,7 @@ export function DevicesPage({
         />
       ) : null}
 
-      <div className="ac-device-grid">
+      <div className="kochab-device-grid">
         {visible.map((device: DeviceInfo) => (
           <DeviceRecordingCard
             key={device.serial}
@@ -353,7 +353,7 @@ export function DevicesPage({
           setNewGroupName('');
         }}
       >
-        <div className="ac-group">
+        <div className="kochab-group">
           <Space breakLine size="small">
             <Button
               size="small"
@@ -381,8 +381,10 @@ export function DevicesPage({
             onChange={(value) => setNewGroupName(String(value))}
           />
           {groups.names.length > 0 ? (
-            <div className="ac-group__remove">
-              <span className="ac-group__hint">删除分组后，组内设备会回到「{UNGROUPED}」。</span>
+            <div className="kochab-group__remove">
+              <span className="kochab-group__hint">
+                删除分组后，组内设备会回到「{UNGROUPED}」。
+              </span>
               <Space breakLine size="small">
                 {groups.names.map((name) => (
                   <Button
@@ -419,8 +421,8 @@ export function DevicesPage({
         }}
         onConfirm={() => void connect()}
       >
-        <div className="ac-connect">
-          <p className="ac-connect__hint">
+        <div className="kochab-connect">
+          <p className="kochab-connect__hint">
             手机需与本机在同一网络。已通过 USB 连接的设备，可在卡片「更多 → 无线调试」一键开启；
             或先在手机终端执行 <code>adb tcpip 5555</code>。
           </p>
@@ -432,7 +434,7 @@ export function DevicesPage({
             onEnter={() => void connect()}
           />
           {recentAddresses.length > 0 ? (
-            <div className="ac-connect__recent">
+            <div className="kochab-connect__recent">
               <span>最近</span>
               {recentAddresses.map((item) => (
                 <Button key={item} size="small" variant="outline" onClick={() => setAddress(item)}>

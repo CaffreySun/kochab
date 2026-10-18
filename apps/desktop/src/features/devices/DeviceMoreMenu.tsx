@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button, Dialog, Dropdown, Input, MessagePlugin, Tag, Textarea } from 'tdesign-react';
 import { MoreIcon } from 'tdesign-icons-react';
-import type { DeviceInfo, ShellOutput } from '@ac/ipc-contract';
+import type { DeviceInfo, ShellOutput } from '@kochab/ipc-contract';
 import type { Api } from '../../ipc';
 import { toMessage } from '../../ipc';
 import { fileStamp, formatDuration, useRecording } from '../recording/useRecording';
@@ -238,7 +238,7 @@ export function DeviceMoreMenu({
           }
         }}
       >
-        <button aria-label="更多" className="ac-device-card__rail-button" type="button">
+        <button aria-label="更多" className="kochab-device-card__rail-button" type="button">
           <MoreIcon size="18px" />
         </button>
       </Dropdown>
@@ -256,8 +256,8 @@ export function DeviceMoreMenu({
           onCancel={() => closeShell()}
           onClose={() => closeShell()}
         >
-          <div className="ac-shell-popup">
-            <div className="ac-shell-popup__quick">
+          <div className="kochab-shell-popup">
+            <div className="kochab-shell-popup__quick">
               {QUICK_COMMANDS.map((item) => (
                 <Button
                   key={item.label}
@@ -275,7 +275,7 @@ export function DeviceMoreMenu({
               value={command}
               onChange={(value) => setCommand(value)}
             />
-            <div className="ac-shell-popup__actions">
+            <div className="kochab-shell-popup__actions">
               <Button
                 disabled={!command.trim()}
                 loading={running}
@@ -290,8 +290,8 @@ export function DeviceMoreMenu({
               </Button>
             </div>
             {shellHistory.length > 0 ? (
-              <div className="ac-shell-popup__history">
-                <span className="ac-shell-popup__history-label">最近</span>
+              <div className="kochab-shell-popup__history">
+                <span className="kochab-shell-popup__history-label">最近</span>
                 {shellHistory.slice(0, 6).map((item) => (
                   <Button
                     key={item}
@@ -306,8 +306,8 @@ export function DeviceMoreMenu({
               </div>
             ) : null}
             {result ? (
-              <div className="ac-shell-popup__result">
-                <div className="ac-shell-popup__result-head">
+              <div className="kochab-shell-popup__result">
+                <div className="kochab-shell-popup__result-head">
                   <span>输出</span>
                   <Tag
                     size="small"
@@ -317,7 +317,7 @@ export function DeviceMoreMenu({
                     退出码 {result.exitCode}
                   </Tag>
                 </div>
-                <pre className="ac-shell-popup__output" data-testid="shell-output">
+                <pre className="kochab-shell-popup__output" data-testid="shell-output">
                   {result.stdout.trim() || '（命令没有产生输出）'}
                 </pre>
               </div>
@@ -339,8 +339,8 @@ export function DeviceMoreMenu({
           setRenameOpen(false);
         }}
       >
-        <div className="ac-rename">
-          <p className="ac-rename__hint">只影响本机列表里的显示；留空则恢复序列号。</p>
+        <div className="kochab-rename">
+          <p className="kochab-rename__hint">只影响本机列表里的显示；留空则恢复序列号。</p>
           <Input
             autofocus
             clearable

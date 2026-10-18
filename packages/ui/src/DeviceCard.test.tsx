@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { DeviceInfo } from '@ac/ipc-contract';
+import type { DeviceInfo } from '@kochab/ipc-contract';
 import { DeviceCard } from './DeviceCard';
 
 const device: DeviceInfo = {

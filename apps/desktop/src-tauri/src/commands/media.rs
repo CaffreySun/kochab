@@ -8,7 +8,7 @@ use crate::commands::{download_dir, ensure_ready};
 use crate::error::{CommandError, CommandResult};
 use crate::state::state;
 
-/// 录屏状态事件名，与 `@ac/ipc-contract` 的 EVENTS 一字不差。
+/// 录屏状态事件名，与 `@kochab/ipc-contract` 的 EVENTS 一字不差。
 const EVENTS_RECORDING: &str = "recording://changed";
 
 /// 当前录屏状态；跨窗口、跨入口都以它为准。

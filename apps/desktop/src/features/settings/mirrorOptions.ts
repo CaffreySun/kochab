@@ -30,7 +30,7 @@ export const DEFAULT_MIRROR_OPTIONS: MirrorOptions = {
   stayAwake: true,
 };
 
-const STORAGE_KEY = 'ac.mirrorOptions';
+const STORAGE_KEY = 'kochab.mirrorOptions';
 
 export const MirrorOptionsContext = createContext<MirrorOptions>(DEFAULT_MIRROR_OPTIONS);
 

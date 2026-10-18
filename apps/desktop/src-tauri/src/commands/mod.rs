@@ -56,7 +56,7 @@ pub(crate) async fn ensure_ready(app: &AppHandle, serial: &str) -> CommandResult
 
 /// 由 `generate_handler!` 展开的命令清单。
 ///
-/// 新增命令时必须同步登记到 `@ac/ipc-contract` 的 `COMMANDS`。
+/// 新增命令时必须同步登记到 `@kochab/ipc-contract` 的 `COMMANDS`。
 /// 路径用 `$crate::` 前缀，宏才能在任意调用点展开。
 #[macro_export]
 macro_rules! invoke_handler {

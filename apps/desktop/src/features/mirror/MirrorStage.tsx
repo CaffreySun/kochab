@@ -52,10 +52,10 @@ export function MirrorStage({ setCanvas, status, error, onStart, sendTouch }: Mi
   const streaming = status === 'streaming';
 
   return (
-    <section className="ac-mirror-stage" data-testid="mirror-stage">
+    <section className="kochab-mirror-stage" data-testid="mirror-stage">
       <canvas
         ref={setCanvas}
-        className="ac-mirror-stage__canvas"
+        className="kochab-mirror-stage__canvas"
         data-testid="mirror-canvas"
         onPointerCancel={endDrag}
         onPointerDown={handlePointerDown}
@@ -64,7 +64,7 @@ export function MirrorStage({ setCanvas, status, error, onStart, sendTouch }: Mi
       />
 
       {streaming ? null : (
-        <div className="ac-mirror-stage__overlay">
+        <div className="kochab-mirror-stage__overlay">
           {status === 'starting' ? (
             <Loading loading size="small" text="正在协商会话…" />
           ) : (
@@ -72,7 +72,7 @@ export function MirrorStage({ setCanvas, status, error, onStart, sendTouch }: Mi
               <Button size="small" theme="primary" onClick={onStart}>
                 开始投屏
               </Button>
-              <p className="ac-mirror-stage__hint" role={error ? 'alert' : undefined}>
+              <p className="kochab-mirror-stage__hint" role={error ? 'alert' : undefined}>
                 {error ?? '开始后即可在这台设备上操作应用与文件'}
               </p>
             </>
@@ -81,7 +81,7 @@ export function MirrorStage({ setCanvas, status, error, onStart, sendTouch }: Mi
       )}
 
       {/* 状态标签给读屏用；视觉上已经在标题栏与浮层里表达过了 */}
-      <span className="ac-visually-hidden" data-testid="mirror-status">
+      <span className="kochab-visually-hidden" data-testid="mirror-status">
         {statusLabel(status)}
       </span>
     </section>

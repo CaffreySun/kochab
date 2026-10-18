@@ -27,14 +27,14 @@ describe('StatusDot', () => {
   it('默认不展示可见文案，但保留无障碍文案', () => {
     render(<StatusDot state="device" />);
 
-    expect(screen.getByText('就绪')).toHaveClass('ac-visually-hidden');
+    expect(screen.getByText('就绪')).toHaveClass('kochab-visually-hidden');
     expect(screen.getByTestId('device-status')).toHaveAttribute('data-state', 'device');
   });
 
   it('showLabel 时文案可见', () => {
     render(<StatusDot showLabel state="offline" />);
 
-    expect(screen.getByText('离线')).not.toHaveClass('ac-visually-hidden');
+    expect(screen.getByText('离线')).not.toHaveClass('kochab-visually-hidden');
   });
 });
 

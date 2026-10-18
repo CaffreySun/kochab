@@ -12,8 +12,8 @@ import {
   Tag,
 } from 'tdesign-react';
 import { open } from '@tauri-apps/plugin-dialog';
-import type { DeviceInfo, FileEntry } from '@ac/ipc-contract';
-import { EmptyState } from '@ac/ui';
+import type { DeviceInfo, FileEntry } from '@kochab/ipc-contract';
+import { EmptyState } from '@kochab/ui';
 import type { Api } from '../ipc';
 import { toMessage } from '../ipc';
 
@@ -258,8 +258,8 @@ export function FilesPage({ api, device }: FilesPageProps) {
   }
 
   return (
-    <div className="ac-page">
-      <div className="ac-page__toolbar">
+    <div className="kochab-page">
+      <div className="kochab-page__toolbar">
         <Space breakLine size="small">
           <Button disabled={history.length <= 1} size="small" variant="outline" onClick={goBack}>
             返回上级
@@ -305,7 +305,7 @@ export function FilesPage({ api, device }: FilesPageProps) {
         </Space>
       </div>
 
-      <div className="ac-files__path">
+      <div className="kochab-files__path">
         {pathEditing ? (
           <Space size="small">
             <Input
@@ -326,7 +326,7 @@ export function FilesPage({ api, device }: FilesPageProps) {
           </Space>
         ) : (
           <>
-            <Breadcrumb className="ac-files__breadcrumb" maxItemWidth="160px">
+            <Breadcrumb className="kochab-files__breadcrumb" maxItemWidth="160px">
               {crumbs.map((crumb, index) => (
                 <Breadcrumb.BreadcrumbItem
                   key={crumb.path}
@@ -365,7 +365,7 @@ export function FilesPage({ api, device }: FilesPageProps) {
       ) : null}
 
       {entries.length > 0 ? (
-        <div className="ac-page__scroll">
+        <div className="kochab-page__scroll">
           <Table
             columns={[
               { colKey: 'row-select', type: 'multiple', width: 48 },
@@ -374,7 +374,7 @@ export function FilesPage({ api, device }: FilesPageProps) {
                 title: '名称',
                 cell: ({ row }: { row: FileEntry }) => (
                   <button
-                    className="ac-files__entry"
+                    className="kochab-files__entry"
                     disabled={!row.isDirectory}
                     type="button"
                     onClick={() => (row.isDirectory ? navigate(row.path) : undefined)}

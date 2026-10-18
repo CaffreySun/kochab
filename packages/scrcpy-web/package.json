@@ -1,5 +1,5 @@
 {
-  "name": "@ac/scrcpy-web",
+  "name": "@kochab/scrcpy-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@ac/ipc-contract": "workspace:*"
+    "@kochab/ipc-contract": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:types",

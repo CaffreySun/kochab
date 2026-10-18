@@ -9,7 +9,7 @@ import type {
   SessionStats,
   ShellOutput,
   ToolchainStatus,
-} from '@ac/ipc-contract';
+} from '@kochab/ipc-contract';
 
 /** 支持按入参动态生成的 fixture */
 type FixtureFactory = (args?: Record<string, unknown>) => unknown;
@@ -183,7 +183,7 @@ export function createMockTransport(
   options: MockOptions = {},
 ): import('./transport').Transport {
   const fixtures: Record<string, unknown> = {
-    app_info: { name: 'Android Controller', version: '0.1.0 (mock)', tauriVersion: '2.12.3' },
+    app_info: { name: 'Kochab', version: '0.1.0 (mock)', tauriVersion: '2.12.3' },
     toolchain_diagnostics: MOCK_TOOLCHAIN,
     shell_exec: (args?: Record<string, unknown>) =>
       ({

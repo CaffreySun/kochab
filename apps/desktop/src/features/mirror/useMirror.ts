@@ -5,8 +5,8 @@ import type {
   SessionStartOptions,
   SessionStats,
   TouchAction,
-} from '@ac/ipc-contract';
-import { VideoStreamDecoder, clientPointToDevice, decodeBase64 } from '@ac/scrcpy-web';
+} from '@kochab/ipc-contract';
+import { VideoStreamDecoder, clientPointToDevice, decodeBase64 } from '@kochab/scrcpy-web';
 import type { Api } from '../../ipc';
 import { toCode, toMessage } from '../../ipc';
 

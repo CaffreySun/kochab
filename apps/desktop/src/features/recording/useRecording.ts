@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { RecordingStatus, SavedFile } from '@ac/ipc-contract';
+import type { RecordingStatus, SavedFile } from '@kochab/ipc-contract';
 import type { Api } from '../../ipc';
 
 const INACTIVE: RecordingStatus = { active: false, startedAt: null, maxSeconds: 180 };

@@ -8,7 +8,7 @@ export interface DevicePrefs {
   pinned: string[];
 }
 
-const STORAGE_KEY = 'ac.devicePrefs';
+const STORAGE_KEY = 'kochab.devicePrefs';
 const EMPTY: DevicePrefs = { aliases: {}, pinned: [] };
 
 /** 只接受合法内容；localStorage 可能被旧版本或手工编辑污染。 */

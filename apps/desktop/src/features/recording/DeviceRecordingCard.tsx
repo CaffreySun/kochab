@@ -1,6 +1,6 @@
 import { MessagePlugin, Tooltip } from 'tdesign-react';
 import { VideoCameraIcon } from 'tdesign-icons-react';
-import { DeviceCard, type DeviceCardProps } from '@ac/ui';
+import { DeviceCard, type DeviceCardProps } from '@kochab/ui';
 import type { Api } from '../../ipc';
 import { toMessage } from '../../ipc';
 import { formatDuration, useRecording } from './useRecording';
@@ -45,7 +45,7 @@ export function DeviceRecordingCard({ api, device, ...cardProps }: DeviceRecordi
         <Tooltip content={label} placement="left">
           <button
             aria-label={recording.active ? '停止录屏' : '录屏'}
-            className="ac-device-card__rail-button"
+            className="kochab-device-card__rail-button"
             disabled={(!ready && !recording.active) || recording.busy}
             type="button"
             onClick={() => void toggle()}

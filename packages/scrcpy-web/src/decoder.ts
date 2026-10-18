@@ -11,7 +11,7 @@
  * 因此这里只保留「最新一个关键帧之后」的数据：队列过长就丢非关键帧。
  */
 
-import type { VideoCodec } from '@ac/ipc-contract';
+import type { VideoCodec } from '@kochab/ipc-contract';
 import {
   annexBToAvcc,
   avcCodecString,

@@ -2,7 +2,7 @@
  * Tauri 命令名注册表。
  *
  * 约定：Rust 侧 `src-tauri/src/commands/*` 中每个 `#[tauri::command]` 的函数名
- * 必须在此登记。`cargo test -p android-controller` 会对契约与命令清单做**双向**比对，
+ * 必须在此登记。`cargo test -p kochab` 会对契约与命令清单做**双向**比对，
  * 任何一侧漏登记都会导致测试失败。
  *
  * 命名规则：`snake_case` 的 `{领域}_{动作}`。

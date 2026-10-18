@@ -13,7 +13,7 @@ export interface EmptyStateProps {
 export function EmptyState({ title, description, action, className }: EmptyStateProps) {
   return (
     <div
-      className={['ac-empty-state', className].filter(Boolean).join(' ')}
+      className={['kochab-empty-state', className].filter(Boolean).join(' ')}
       data-testid="empty-state"
     >
       <Empty action={action} description={description} title={title} />

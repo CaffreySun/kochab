@@ -1,9 +1,9 @@
 {
-  "name": "@ac/desktop",
+  "name": "@kochab/desktop",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Android Controller 桌面应用（Tauri 2 + React + TDesign）",
+  "description": "Kochab 桌面应用：Android 多设备控制面（Tauri 2 + React + TDesign）",
   "scripts": {
     "dev": "tauri dev",
     "dev:web": "vite",
@@ -15,9 +15,9 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@ac/ipc-contract": "workspace:*",
-    "@ac/scrcpy-web": "workspace:*",
-    "@ac/ui": "workspace:*",
+    "@kochab/ipc-contract": "workspace:*",
+    "@kochab/scrcpy-web": "workspace:*",
+    "@kochab/ui": "workspace:*",
     "@tauri-apps/api": "catalog:",
     "@tauri-apps/plugin-dialog": "catalog:",
     "@tauri-apps/plugin-opener": "catalog:",

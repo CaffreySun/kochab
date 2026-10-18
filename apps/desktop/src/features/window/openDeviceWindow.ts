@@ -5,7 +5,7 @@ import { buildDeviceUrl } from '../../windowMode';
 /**
  * 主窗口 → 详情窗口的入口意图。
  *
- * 只用于**前端窗口之间**，不经过 Rust，因此不进 `@ac/ipc-contract` 的事件表——
+ * 只用于**前端窗口之间**，不经过 Rust，因此不进 `@kochab/ipc-contract` 的事件表——
  * 那张表是与 Rust `emit` 调用点一一对应的。命名仍沿用 `<领域>://<事件>` 约定。
  */
 export const DEVICE_ENTRY_EVENT = 'device://entry-request';
@@ -57,7 +57,7 @@ export async function openDeviceWindow(serial: string, tab: WorkspaceTab): Promi
   }
 
   const created = new WebviewWindow(label, {
-    title: `设备 · ${serial}`,
+    title: `Kochab · 设备 · ${serial}`,
     url,
     // 只是初值：窗口挂载后会按设备分辨率把宽度调成「画面刚好填满」，
     // 面板打开时再向右变宽。这里给一个偏窄的起点，避免先宽后窄的跳动。

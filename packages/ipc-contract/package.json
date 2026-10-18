@@ -1,5 +1,5 @@
 {
-  "name": "@ac/ipc-contract",
+  "name": "@kochab/ipc-contract",
   "version": "0.1.0",
   "private": true,
   "type": "module",

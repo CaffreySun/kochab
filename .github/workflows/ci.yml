@@ -91,4 +91,4 @@ jobs:
 
       # Windows 需要 MSVC 生成工具；macOS 需要 Xcode CLT，runner 镜像均已预装。
       - name: 打包桌面应用
-        run: pnpm --filter @ac/desktop run package
+        run: pnpm --filter @kochab/desktop run package

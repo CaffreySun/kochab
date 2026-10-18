@@ -9,7 +9,7 @@ import {
   UsergroupIcon,
   WifiIcon,
 } from 'tdesign-icons-react';
-import type { DeviceInfo } from '@ac/ipc-contract';
+import type { DeviceInfo } from '@kochab/ipc-contract';
 import { StatusDot } from './StatusDot';
 
 /** 卡片右侧竖排操作栏的动作。 */
@@ -86,32 +86,32 @@ export function DeviceCard({
   return (
     <article
       aria-label={`设备 ${title}`}
-      className={['ac-device-card', ready ? '' : 'ac-device-card--offline']
+      className={['kochab-device-card', ready ? '' : 'kochab-device-card--offline']
         .filter(Boolean)
         .join(' ')}
       data-serial={device.serial}
       data-testid="device-card"
     >
-      <header className="ac-device-card__header">
+      <header className="kochab-device-card__header">
         <Checkbox
           checked={checked}
           disabled={!ready}
           onChange={(value) => onCheckedChange?.(device.serial, Boolean(value))}
         />
         <Tooltip content={transportLabel[device.transport] ?? device.transport} placement="top">
-          <span className="ac-device-card__transport">
+          <span className="kochab-device-card__transport">
             {device.transport === 'usb' ? <UsbIcon size="16px" /> : <WifiIcon size="16px" />}
           </span>
         </Tooltip>
         <button
-          className="ac-device-card__identity"
+          className="kochab-device-card__identity"
           data-testid="device-select"
           title={`${device.serial}${title !== device.serial ? ` · ${title}` : ''}`}
           type="button"
           onClick={() => onOpen?.(device.serial)}
         >
-          <span className="ac-device-card__name">{displayName}</span>
-          <span className="ac-device-card__serial">{device.serial}</span>
+          <span className="kochab-device-card__name">{displayName}</span>
+          <span className="kochab-device-card__serial">{device.serial}</span>
         </button>
         <Tag size="small" theme={ready ? 'success' : 'danger'} variant="light-outline">
           {ready ? '已连接' : stateLabel(device)}
@@ -119,7 +119,7 @@ export function DeviceCard({
         <Tooltip content="设置分组" placement="top">
           <button
             aria-label="设置分组"
-            className="ac-device-card__group-button"
+            className="kochab-device-card__group-button"
             data-testid="device-group"
             type="button"
             onClick={() => onGroup?.(device.serial)}
@@ -129,12 +129,12 @@ export function DeviceCard({
         </Tooltip>
       </header>
 
-      <div className="ac-device-card__body">
+      <div className="kochab-device-card__body">
         {/* 缩略图整块可点：进详情的主要入口。缩略图本身不接指针事件，
             所以不会和「点击开详情」抢手势。 */}
         <button
           aria-label={`打开 ${title} 详情`}
-          className="ac-device-card__preview"
+          className="kochab-device-card__preview"
           data-testid="device-preview"
           title="打开设备详情"
           type="button"
@@ -142,19 +142,19 @@ export function DeviceCard({
         >
           {preview}
           {recording?.active ? (
-            <span className="ac-device-card__recording" data-testid="device-recording">
-              <span aria-hidden="true" className="ac-device-card__recording-dot" />
+            <span className="kochab-device-card__recording" data-testid="device-recording">
+              <span aria-hidden="true" className="kochab-device-card__recording-dot" />
               {formatClock(recording.elapsed)}
             </span>
           ) : null}
         </button>
 
-        <div className="ac-device-card__rail">
+        <div className="kochab-device-card__rail">
           {ACTIONS.map((action) => (
             <Tooltip key={action.key} content={action.label} placement="left">
               <button
                 aria-label={action.label}
-                className="ac-device-card__rail-button"
+                className="kochab-device-card__rail-button"
                 disabled={!ready}
                 type="button"
                 onClick={() => onAction?.(action.key, device.serial)}
@@ -168,7 +168,7 @@ export function DeviceCard({
           {railMore ?? (
             <button
               aria-label="更多"
-              className="ac-device-card__rail-button"
+              className="kochab-device-card__rail-button"
               disabled={!ready}
               type="button"
               onClick={() => onAction?.('more', device.serial)}
@@ -179,9 +179,9 @@ export function DeviceCard({
         </div>
       </div>
 
-      <footer className="ac-device-card__footer">
+      <footer className="kochab-device-card__footer">
         <StatusDot showLabel state={device.state} />
-        <span className="ac-device-card__meta">
+        <span className="kochab-device-card__meta">
           {device.androidVersion ? `Android ${device.androidVersion}` : '未知系统'}
           {device.screenResolution ? ` · ${device.screenResolution}` : ''}
         </span>

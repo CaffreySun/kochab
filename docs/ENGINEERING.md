@@ -50,7 +50,7 @@ scripts/              Node 工具脚本，一律 ESM + .mjs
 | 事件名 | `<domain>://<kebab-event>` | `device://changed` |
 | TS 类型 / 组件 | `PascalCase` | `DeviceCard` |
 | TS 函数 / 变量 | `camelCase` | `useDevices` |
-| CSS 类 | BEM 化的 `ac-` 前缀 | `.ac-device-card__header` |
+| CSS 类 | BEM 化的 `kochab-` 前缀 | `.kochab-device-card__header` |
 | 环境变量 | `SCREAMING_SNAKE_CASE` | `SCRCPY_SERVER_PATH` |
 | 特性开关（cargo） | `device-tests` / `codegen` | |
 
@@ -92,7 +92,7 @@ scripts/              Node 工具脚本，一律 ESM + .mjs
 补充约定：
 
 - **禁止 `any`**。确实需要逃生舱时用 `unknown` + 类型收窄。
-- 领域数据只从 `@ac/ipc-contract` 引入，不要在别处重复定义。
+- 领域数据只从 `@kochab/ipc-contract` 引入，不要在别处重复定义。
 - 组件 props 一律显式声明 `interface`，不使用 `React.FC`。
 - 自定义 hook 以 `use` 开头，返回具名对象而非位置数组（便于演进）。
 - JSX 属性顺序：`react/jsx-sort-props` 已开启（回调属性在最后、简写在前、`key` 最前）。
@@ -119,7 +119,7 @@ scripts/              Node 工具脚本，一律 ESM + .mjs
   状态变化需对读屏软件可感知。
 
 > TDesign 的 `Button` 在 `disabled` 时会渲染成 `<div>`，丢失 button 语义。
-> 统一使用 `@ac/ui` 的 `ActionButton`，它强制 `tag="button"`。
+> 统一使用 `@kochab/ui` 的 `ActionButton`，它强制 `tag="button"`。
 
 ## 8. 错误处理约定
 

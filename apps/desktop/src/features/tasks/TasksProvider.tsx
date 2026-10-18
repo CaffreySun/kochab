@@ -31,7 +31,7 @@ export interface Task {
 
 /** 历史保留条数，避免 localStorage 无限增长。 */
 const HISTORY_LIMIT = 50;
-const STORAGE_KEY = 'ac.tasks';
+const STORAGE_KEY = 'kochab.tasks';
 
 export function taskSummary(task: Task): string {
   if (task.status === 'running') return `进行中 ${task.items.length}/${task.items.length || '…'}`;

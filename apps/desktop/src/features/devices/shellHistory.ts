@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'ac.shellHistory';
+const STORAGE_KEY = 'kochab.shellHistory';
 const LIMIT = 20;
 
 /** 最近执行过的命令；内容损坏时返回空数组，不影响命令行使用。 */

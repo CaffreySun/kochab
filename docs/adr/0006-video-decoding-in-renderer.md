@@ -27,7 +27,7 @@ Rust 只做拆包与转发，**不解码**；把压缩后的字节通过 Tauri �
 - **macOS 最低版本被抬高**：WKWebView 的 WebCodecs 需 Safari 16.4+，
   因此 `bundle.macOS.minimumSystemVersion = 13.0`。
 - 需要处理编解码器协商失败、设备旋转导致的分辨率变化、解码器 reset 等边界。
-- 前端要维护帧缓冲与背压逻辑（`@ac/scrcpy-web` 的职责）。
+- 前端要维护帧缓冲与背压逻辑（`@kochab/scrcpy-web` 的职责）。
 
 ## 缓解
 

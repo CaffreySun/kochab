@@ -2,8 +2,8 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type React from 'react';
-import { COMMANDS, type DeviceInfo } from '@ac/ipc-contract';
-import { KEYCODE_BACK } from '@ac/scrcpy-web';
+import { COMMANDS, type DeviceInfo } from '@kochab/ipc-contract';
+import { KEYCODE_BACK } from '@kochab/scrcpy-web';
 import { createApi } from '../ipc';
 import { createMockTransport } from '../ipc/mock';
 import { AppsPage } from './AppsPage';
@@ -354,7 +354,7 @@ describe('DevicesPage（多设备）', () => {
       });
     });
     await waitFor(() => {
-      expect(JSON.parse(window.localStorage.getItem('ac.recentAddresses') ?? '[]')).toContain(
+      expect(JSON.parse(window.localStorage.getItem('kochab.recentAddresses') ?? '[]')).toContain(
         '192.168.1.50:5555',
       );
     });
@@ -418,7 +418,7 @@ describe('DevicesPage（多设备）', () => {
     await user.click(screen.getByRole('button', { name: '保存' }));
 
     expect(await screen.findByText('我的测试机')).toBeInTheDocument();
-    expect(JSON.parse(window.localStorage.getItem('ac.devicePrefs') ?? '{}')).toMatchObject({
+    expect(JSON.parse(window.localStorage.getItem('kochab.devicePrefs') ?? '{}')).toMatchObject({
       aliases: { d4535f72: '我的测试机' },
     });
   });
@@ -434,7 +434,7 @@ describe('DevicesPage（多设备）', () => {
 
     const after = await screen.findAllByTestId('device-card');
     expect(within(after[0]!).getByText('emulator-5554')).toBeInTheDocument();
-    expect(JSON.parse(window.localStorage.getItem('ac.devicePrefs') ?? '{}')).toMatchObject({
+    expect(JSON.parse(window.localStorage.getItem('kochab.devicePrefs') ?? '{}')).toMatchObject({
       pinned: ['emulator-5554'],
     });
   });
@@ -627,7 +627,7 @@ describe('DeviceMoreMenu', () => {
         command: 'dumpsys battery',
       });
     });
-    expect(JSON.parse(window.localStorage.getItem('ac.shellHistory') ?? '[]')).toEqual([
+    expect(JSON.parse(window.localStorage.getItem('kochab.shellHistory') ?? '[]')).toEqual([
       'dumpsys battery',
     ]);
   });
@@ -842,7 +842,7 @@ describe('DeviceDetailPage', () => {
     // 设备身份写在系统标题栏，页面里不再重复
     expect(screen.queryByText('d4535f72')).not.toBeInTheDocument();
     // 没有面板就不渲染面板容器
-    expect(document.querySelector('.ac-detail__panel')).toBeNull();
+    expect(document.querySelector('.kochab-detail__panel')).toBeNull();
   });
 
   it('竖排栏的截屏按钮直接保存到下载目录', async () => {
@@ -946,7 +946,7 @@ describe('DeviceDetailPage', () => {
   it('面板打开时渲染对应页面', async () => {
     renderDetail({ panel: 'overview' });
 
-    expect(document.querySelector('.ac-detail__panel')).not.toBeNull();
+    expect(document.querySelector('.kochab-detail__panel')).not.toBeNull();
     // 概览要先取一次数据，所以是异步出现
     expect(await screen.findByRole('heading', { name: '电池' })).toBeInTheDocument();
   });
@@ -1120,7 +1120,7 @@ describe('mirrorOptions 持久化', () => {
 
   it('损坏的数值回落到默认值', () => {
     window.localStorage.setItem(
-      'ac.mirrorOptions',
+      'kochab.mirrorOptions',
       JSON.stringify({ maxSize: 'big', maxFps: -5, bitRate: null, showTouches: 'yes' }),
     );
 
@@ -1128,7 +1128,7 @@ describe('mirrorOptions 持久化', () => {
   });
 
   it('缺失存储时返回默认值', () => {
-    window.localStorage.removeItem('ac.mirrorOptions');
+    window.localStorage.removeItem('kochab.mirrorOptions');
 
     expect(readMirrorOptions()).toEqual(DEFAULT_MIRROR_OPTIONS);
   });

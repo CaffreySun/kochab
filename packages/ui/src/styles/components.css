@@ -2,7 +2,7 @@
  * 工具类
  * ------------------------------------------------------------------ */
 
-.ac-visually-hidden {
+.kochab-visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -18,27 +18,27 @@
  * 空态
  * ------------------------------------------------------------------ */
 
-.ac-empty-state {
+.kochab-empty-state {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 240px;
-  padding: var(--ac-space-lg);
+  padding: var(--kochab-space-lg);
 }
 
 /* ------------------------------------------------------------------ *
  * 状态点
  * ------------------------------------------------------------------ */
 
-.ac-status-dot {
+.kochab-status-dot {
   display: inline-flex;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   align-items: center;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
   font-size: 12px;
 }
 
-.ac-status-dot__dot {
+.kochab-status-dot__dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -46,19 +46,19 @@
   flex: none;
 }
 
-.ac-status-dot.ac-status-dot--success {
+.kochab-status-dot.kochab-status-dot--success {
   color: var(--td-success-color);
 }
 
-.ac-status-dot.ac-status-dot--warning {
+.kochab-status-dot.kochab-status-dot--warning {
   color: var(--td-warning-color);
 }
 
-.ac-status-dot.ac-status-dot--error {
+.kochab-status-dot.kochab-status-dot--error {
   color: var(--td-error-color);
 }
 
-.ac-status-dot.ac-status-dot--default {
+.kochab-status-dot.kochab-status-dot--default {
   color: var(--td-text-color-placeholder);
 }
 
@@ -68,37 +68,37 @@
  * 结构：头部（勾选·传输方式·序列号·状态）/ 主体（缩略图 + 竖排操作栏）/ 页脚
  * ------------------------------------------------------------------ */
 
-.ac-device-card {
+.kochab-device-card {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--ac-bg-container);
-  border: 1px solid var(--ac-border-color);
+  background: var(--kochab-bg-container);
+  border: 1px solid var(--kochab-border-color);
   border-radius: 8px;
 }
 
-.ac-device-card:hover {
+.kochab-device-card:hover {
   border-color: var(--td-brand-color);
 }
 
-.ac-device-card--offline {
+.kochab-device-card--offline {
   opacity: 0.72;
 }
 
-.ac-device-card__header {
+.kochab-device-card__header {
   display: flex;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   align-items: center;
-  padding: var(--ac-space-sm);
-  border-bottom: 1px solid var(--ac-border-color);
+  padding: var(--kochab-space-sm);
+  border-bottom: 1px solid var(--kochab-border-color);
 }
 
-.ac-device-card__transport {
+.kochab-device-card__transport {
   display: inline-flex;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
 }
 
-.ac-device-card__identity {
+.kochab-device-card__identity {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -112,7 +112,7 @@
   cursor: pointer;
 }
 
-.ac-device-card__name {
+.kochab-device-card__name {
   overflow: hidden;
   font-size: 13px;
   font-weight: 600;
@@ -121,9 +121,9 @@
   white-space: nowrap;
 }
 
-.ac-device-card__serial {
+.kochab-device-card__serial {
   overflow: hidden;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
   line-height: 1.25;
@@ -131,13 +131,13 @@
   white-space: nowrap;
 }
 
-.ac-device-card__identity:focus-visible {
+.kochab-device-card__identity:focus-visible {
   outline: 2px solid var(--td-brand-color);
   outline-offset: 2px;
 }
 
 /* 分组入口：与「打开详情」分开的独立按钮，所以做成次级小图标 */
-.ac-device-card__group-button {
+.kochab-device-card__group-button {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -145,26 +145,26 @@
   width: 24px;
   height: 24px;
   padding: 0;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   background: none;
   border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;
 }
 
-.ac-device-card__group-button:hover {
+.kochab-device-card__group-button:hover {
   color: var(--td-brand-color);
-  background: var(--ac-bg-hover);
-  border-color: var(--ac-border-color);
+  background: var(--kochab-bg-hover);
+  border-color: var(--kochab-border-color);
 }
 
-.ac-device-card__body {
+.kochab-device-card__body {
   display: flex;
-  gap: var(--ac-space-xs);
-  padding: var(--ac-space-sm);
+  gap: var(--kochab-space-xs);
+  padding: var(--kochab-space-sm);
 }
 
-.ac-device-card__preview {
+.kochab-device-card__preview {
   position: relative;
   display: flex;
   flex: 1;
@@ -183,12 +183,12 @@
   cursor: pointer;
 }
 
-.ac-device-card__preview:focus-visible {
+.kochab-device-card__preview:focus-visible {
   outline: 2px solid var(--td-brand-color);
   outline-offset: 2px;
 }
 
-.ac-device-card__recording {
+.kochab-device-card__recording {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -203,55 +203,55 @@
   border-radius: 999px;
 }
 
-.ac-device-card__recording-dot {
+.kochab-device-card__recording-dot {
   width: 6px;
   height: 6px;
   background: #e34d59;
   border-radius: 50%;
 }
 
-.ac-device-card__rail {
+.kochab-device-card__rail {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.ac-device-card__rail-button {
+.kochab-device-card__rail-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 30px;
   height: 30px;
-  color: var(--ac-text-secondary);
+  color: var(--kochab-text-secondary);
   background: none;
   border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;
 }
 
-.ac-device-card__rail-button:hover:not(:disabled) {
+.kochab-device-card__rail-button:hover:not(:disabled) {
   color: var(--td-brand-color);
-  background: var(--ac-bg-hover);
-  border-color: var(--ac-border-color);
+  background: var(--kochab-bg-hover);
+  border-color: var(--kochab-border-color);
 }
 
-.ac-device-card__rail-button:disabled {
+.kochab-device-card__rail-button:disabled {
   color: var(--td-text-color-disabled);
   cursor: not-allowed;
 }
 
-.ac-device-card__footer {
+.kochab-device-card__footer {
   display: flex;
-  gap: var(--ac-space-xs);
+  gap: var(--kochab-space-xs);
   align-items: center;
-  padding: var(--ac-space-sm);
-  border-top: 1px solid var(--ac-border-color);
+  padding: var(--kochab-space-sm);
+  border-top: 1px solid var(--kochab-border-color);
 }
 
-.ac-device-card__meta {
+.kochab-device-card__meta {
   flex: 1;
   overflow: hidden;
-  color: var(--ac-text-placeholder);
+  color: var(--kochab-text-placeholder);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -1,5 +1,5 @@
 import { Button, Progress, Space, Tag } from 'tdesign-react';
-import { EmptyState } from '@ac/ui';
+import { EmptyState } from '@kochab/ui';
 import { useTasks, taskSummary, type Task } from '../features/tasks/TasksProvider';
 
 const STATUS_TAG: Record<
@@ -29,12 +29,12 @@ export function TasksPage() {
   const finished = tasks.filter((task) => task.status !== 'running').length;
 
   return (
-    <div className="ac-tasks">
-      <p className="ac-tasks__intro">
+    <div className="kochab-tasks">
+      <p className="kochab-tasks__intro">
         这里记录批量操作（重启、恢复分辨率）的逐台结果；单台设备的操作不会出现在这里。
         批量命令没有原子性，所以成功与失败都按设备分别保留。
       </p>
-      <div className="ac-tasks__toolbar">
+      <div className="kochab-tasks__toolbar">
         <Tag variant="light-outline">共 {tasks.length} 条</Tag>
         {finished > 0 ? (
           <Button size="small" variant="outline" onClick={clearFinished}>
@@ -54,17 +54,17 @@ export function TasksPage() {
         const meta = STATUS_TAG[task.status];
         const percent = task.total === 0 ? 0 : Math.round((task.items.length / task.total) * 100);
         return (
-          <section key={task.id} className="ac-task">
-            <header className="ac-task__head">
+          <section key={task.id} className="kochab-task">
+            <header className="kochab-task__head">
               <Space size="small">
                 <strong>{task.label}</strong>
                 <Tag size="small" theme={meta.theme} variant="light-outline">
                   {meta.label}
                 </Tag>
-                <span className="ac-task__summary">{taskSummary(task)}</span>
+                <span className="kochab-task__summary">{taskSummary(task)}</span>
               </Space>
               <Space size="small">
-                <span className="ac-task__time">{formatTime(task.startedAt)}</span>
+                <span className="kochab-task__time">{formatTime(task.startedAt)}</span>
                 {task.status !== 'running' ? (
                   <Button size="small" variant="text" onClick={() => dismiss(task.id)}>
                     移除
@@ -82,14 +82,16 @@ export function TasksPage() {
             ) : null}
 
             {task.items.length > 0 ? (
-              <ul className="ac-task__items">
+              <ul className="kochab-task__items">
                 {task.items.map((item) => (
                   <li
                     key={item.serial}
-                    className={item.ok ? 'ac-task__item' : 'ac-task__item ac-task__item--bad'}
+                    className={
+                      item.ok ? 'kochab-task__item' : 'kochab-task__item kochab-task__item--bad'
+                    }
                   >
-                    <span className="ac-task__serial">{item.serial}</span>
-                    <span className="ac-task__detail">
+                    <span className="kochab-task__serial">{item.serial}</span>
+                    <span className="kochab-task__detail">
                       {item.detail ?? (item.ok ? '成功' : '失败')}
                     </span>
                   </li>

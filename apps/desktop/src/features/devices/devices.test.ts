@@ -26,7 +26,7 @@ describe('shell 历史', () => {
   });
 
   it('localStorage 损坏时退回空历史', () => {
-    window.localStorage.setItem('ac.shellHistory', '{bad json');
+    window.localStorage.setItem('kochab.shellHistory', '{bad json');
     expect(readShellHistory()).toEqual([]);
   });
 });
@@ -42,7 +42,7 @@ describe('设备偏好', () => {
   });
 
   it('读取损坏内容时返回空配置', () => {
-    window.localStorage.setItem('ac.devicePrefs', '[]');
+    window.localStorage.setItem('kochab.devicePrefs', '[]');
     expect(readDevicePrefs()).toEqual({ aliases: {}, pinned: [] });
   });
 });

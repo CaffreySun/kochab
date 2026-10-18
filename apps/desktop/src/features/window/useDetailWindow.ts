@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
-import type { DeviceConnectionState, DeviceInfo } from '@ac/ipc-contract';
+import type { DeviceConnectionState, DeviceInfo } from '@kochab/ipc-contract';
 import { isTauriRuntime } from '../../ipc/tauri';
 import { readDevicePrefs } from '../devices/useDevicePrefs';
 
-/** 竖排按钮栏宽度；必须与 `global.css` 的 `--ac-rail-width` 一致 */
+/** 竖排按钮栏宽度；必须与 `global.css` 的 `--kochab-rail-width` 一致 */
 const RAIL_WIDTH = 34;
-/** 详情页容器的内边距与子项间距：`.ac-detail` 用的是 `--ac-space-xs` */
+/** 详情页容器的内边距与子项间距：`.kochab-detail` 用的是 `--kochab-space-xs` */
 const DETAIL_PADDING = 4;
 const DETAIL_GAP = 4;
 /** 展开面板的默认宽度（竖屏，放右侧） */
@@ -46,7 +46,7 @@ export function mirrorHeightFor(aspect: number, width: number): number {
  * 按「画面刚好填满、不留黑边」推算窗口宽度。
  *
  * 画面高度 = 窗口高度 - 上下内边距，宽度再乘设备宽高比；最后加上按钮栏（与面板）。
- * 这些常量对应 `global.css` 里 `.ac-detail` 的实际取值，估歪一点只会变成几像素的
+ * 这些常量对应 `global.css` 里 `.kochab-detail` 的实际取值，估歪一点只会变成几像素的
  * 居中留白，不会破坏布局。设备分辨率未知时回落到 9:16。
  */
 export function computeDetailWidth(
@@ -110,10 +110,10 @@ function aspectOf(resolution: string | null): number {
 }
 
 function titleFor(device: DeviceInfo | null, alias?: string): string {
-  if (!device) return '设备';
+  if (!device) return 'Kochab · 设备';
   const name =
     alias?.trim() || [device.manufacturer, device.model].filter(Boolean).join(' ') || device.serial;
-  return [name, device.serial, stateLabel(device.state)].join(' · ');
+  return ['Kochab', name, device.serial, stateLabel(device.state)].join(' · ');
 }
 
 function stateLabel(state: DeviceConnectionState): string {

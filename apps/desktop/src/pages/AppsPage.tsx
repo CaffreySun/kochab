@@ -12,8 +12,8 @@ import {
   Tag,
 } from 'tdesign-react';
 import { open } from '@tauri-apps/plugin-dialog';
-import type { AppInfo, DeviceInfo } from '@ac/ipc-contract';
-import { EmptyState } from '@ac/ui';
+import type { AppInfo, DeviceInfo } from '@kochab/ipc-contract';
+import { EmptyState } from '@kochab/ui';
 import type { Api } from '../ipc';
 import { toMessage } from '../ipc';
 
@@ -216,8 +216,8 @@ export function AppsPage({ api, device }: AppsPageProps) {
   }
 
   return (
-    <div className="ac-page">
-      <div className="ac-page__toolbar">
+    <div className="kochab-page">
+      <div className="kochab-page__toolbar">
         <Space breakLine size="small">
           <Input
             clearable
@@ -227,7 +227,7 @@ export function AppsPage({ api, device }: AppsPageProps) {
             value={keyword}
             onChange={(value) => setKeyword(value)}
           />
-          <span className="ac-page__inline-switch">
+          <span className="kochab-page__inline-switch">
             <Switch size="small" value={showSystem} onChange={setShowSystem} />
             <span>显示系统应用</span>
           </span>
@@ -268,7 +268,7 @@ export function AppsPage({ api, device }: AppsPageProps) {
       ) : null}
 
       {visible.length > 0 ? (
-        <div className="ac-page__scroll">
+        <div className="kochab-page__scroll">
           <Table
             columns={[
               {
@@ -285,20 +285,20 @@ export function AppsPage({ api, device }: AppsPageProps) {
                     .join(' · ');
                   return (
                     <button
-                      className="ac-app-cell ac-app-cell--button"
+                      className="kochab-app-cell kochab-app-cell--button"
                       title="查看应用详情"
                       type="button"
                       onClick={() => void openDetails(row)}
                     >
                       <span
                         aria-hidden="true"
-                        className="ac-app-avatar"
+                        className="kochab-app-avatar"
                         style={{ background: avatarColor(primary) }}
                       >
                         {primary.slice(0, 1).toUpperCase()}
                       </span>
-                      <span className="ac-app-cell__text">
-                        <span className="ac-app-cell__name">
+                      <span className="kochab-app-cell__text">
+                        <span className="kochab-app-cell__name">
                           {primary}
                           <Tag
                             size="small"
@@ -308,7 +308,7 @@ export function AppsPage({ api, device }: AppsPageProps) {
                             {row.isSystem ? '系统' : '第三方'}
                           </Tag>
                         </span>
-                        <span className="ac-app-cell__package">{meta}</span>
+                        <span className="kochab-app-cell__package">{meta}</span>
                       </span>
                     </button>
                   );
@@ -392,21 +392,21 @@ export function AppsPage({ api, device }: AppsPageProps) {
       >
         {detailLoading ? <Loading loading size="small" text="正在读取详情…" /> : null}
         {detail ? (
-          <div className="ac-app-detail">
-            <div className="ac-app-detail__head">
+          <div className="kochab-app-detail">
+            <div className="kochab-app-detail__head">
               <span
                 aria-hidden="true"
-                className="ac-app-avatar ac-app-avatar--large"
+                className="kochab-app-avatar kochab-app-avatar--large"
                 style={{ background: avatarColor(detail.label ?? detail.packageName) }}
               >
                 {(detail.label ?? detail.packageName).slice(0, 1).toUpperCase()}
               </span>
               <div>
                 <strong>{detail.label ?? detail.packageName}</strong>
-                <div className="ac-app-detail__muted">{detail.packageName}</div>
+                <div className="kochab-app-detail__muted">{detail.packageName}</div>
               </div>
             </div>
-            <dl className="ac-app-detail__rows">
+            <dl className="kochab-app-detail__rows">
               <DetailRow
                 label="版本"
                 value={`${detail.versionName ?? '—'}${
@@ -451,9 +451,9 @@ export function AppsPage({ api, device }: AppsPageProps) {
 
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="ac-app-detail__row">
+    <div className="kochab-app-detail__row">
       <dt>{label}</dt>
-      <dd className={mono ? 'ac-app-detail__mono' : undefined}>{value}</dd>
+      <dd className={mono ? 'kochab-app-detail__mono' : undefined}>{value}</dd>
     </div>
   );
 }

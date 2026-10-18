@@ -1,4 +1,4 @@
-//! Android Controller 桌面应用入口。
+//! Kochab 桌面应用入口。
 //!
 //! 该 crate 只做四件事：初始化日志、装配 Tauri 插件、建立 adb 连接、注册命令。
 //! 所有业务能力都下沉到 workspace 的 `android-core` / `scrcpy-session` 中，
@@ -19,7 +19,7 @@ pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,android_controller_lib=debug".into()),
+                .unwrap_or_else(|_| "info,kochab_lib=debug".into()),
         )
         .init();
 
@@ -51,7 +51,7 @@ pub fn run() {
 
             tracing::info!(
                 version = app.package_info().version.to_string(),
-                "Android Controller 启动"
+                "Kochab 启动"
             );
             Ok(())
         })
@@ -137,13 +137,13 @@ mod tests {
         for name in &contract_names {
             assert!(
                 handler.contains(&format!("::{name},")),
-                "命令 {name} 已登记在 @ac/ipc-contract，但没有出现在 generate_handler! 中"
+                "命令 {name} 已登记在 @kochab/ipc-contract，但没有出现在 generate_handler! 中"
             );
         }
         for name in &handler_names {
             assert!(
                 contract.contains(&format!("'{name}'")),
-                "命令 {name} 已注册到 Tauri，但没有登记在 @ac/ipc-contract 中"
+                "命令 {name} 已注册到 Tauri，但没有登记在 @kochab/ipc-contract 中"
             );
         }
     }
@@ -202,7 +202,7 @@ mod tests {
     #[test]
     fn 应用自述可用() {
         let info = commands::system::app_info().expect("app_info 不应失败");
-        assert_eq!(info.name, "Android Controller");
+        assert_eq!(info.name, "Kochab");
         assert!(!info.version.is_empty());
     }
 }

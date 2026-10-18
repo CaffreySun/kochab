@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Android Controller",
+  "productName": "Kochab",
   "version": "0.1.0",
-  "identifier": "dev.androidcontroller.desktop",
+  "identifier": "dev.kochab.desktop",
   "build": {
     "beforeDevCommand": "pnpm run dev:web",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Android Controller",
+        "title": "Kochab",
         "width": 1280,
         "height": 820,
         "minWidth": 1024,
@@ -34,8 +34,8 @@
     "active": true,
     "targets": "all",
     "category": "DeveloperTool",
-    "shortDescription": "Android 设备管理与投屏工具",
-    "longDescription": "基于 adb 与 scrcpy 协议自研的跨平台 Android 设备管理工具：支持设备列表、应用安装卸载、文件管理与实时投屏控制。",
+    "shortDescription": "Android 多设备控制面",
+    "longDescription": "基于 adb 与 scrcpy 协议的跨平台 Android 多设备控制面：设备列表、实时投屏、应用管理、文件管理、Shell 与录屏。",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -43,7 +43,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "copyright": "Copyright © 2026 Android Controller",
+    "copyright": "Copyright © 2026 Kochab",
     "resources": {
       "../../../assets/scrcpy-server-v4.1": "scrcpy-server-v4.1"
     },

@@ -1,4 +1,4 @@
-import type { CommandName, EventName } from '@ac/ipc-contract';
+import type { CommandName, EventName } from '@kochab/ipc-contract';
 import type { Transport } from './transport';
 
 /** 是否运行在 Tauri 运行时中 */

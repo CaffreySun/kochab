@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { COMMANDS, EVENTS } from '@ac/ipc-contract';
+import { COMMANDS, EVENTS } from '@kochab/ipc-contract';
 import { createApi, toCode, toMessage } from './index';
 import { createMockTransport } from './mock';
 

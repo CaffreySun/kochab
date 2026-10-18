@@ -39,20 +39,20 @@ export function AppShell({
   children,
 }: AppShellProps) {
   return (
-    <div className="ac-shell">
-      <aside className="ac-shell__sidebar">
-        <div className="ac-shell__brand">
-          <img alt="Android Controller" className="ac-shell__logo" src={logoUrl} />
+    <div className="kochab-shell">
+      <aside className="kochab-shell__sidebar">
+        <div className="kochab-shell__brand">
+          <img alt="Kochab" className="kochab-shell__logo" src={logoUrl} />
         </div>
 
-        <nav className="ac-shell__nav">
+        <nav className="kochab-shell__nav">
           {NAV.map((item) => (
             <Tooltip key={item.key} content={item.label} placement="right">
               <button
                 aria-current={active === item.key ? 'page' : undefined}
                 className={[
-                  'ac-shell__nav-item',
-                  active === item.key ? 'ac-shell__nav-item--active' : '',
+                  'kochab-shell__nav-item',
+                  active === item.key ? 'kochab-shell__nav-item--active' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -61,9 +61,9 @@ export function AppShell({
                 onClick={() => onChange(item.key)}
               >
                 {item.icon}
-                <span className="ac-shell__nav-label">{item.label}</span>
+                <span className="kochab-shell__nav-label">{item.label}</span>
                 {item.key === 'tasks' && runningCount > 0 ? (
-                  <span className="ac-shell__nav-badge">{runningCount}</span>
+                  <span className="kochab-shell__nav-badge">{runningCount}</span>
                 ) : null}
               </button>
             </Tooltip>
@@ -71,12 +71,12 @@ export function AppShell({
         </nav>
       </aside>
 
-      <main className="ac-shell__content">
-        <header className="ac-shell__header">
-          <h1 className="ac-shell__title">{title}</h1>
-          {toolbar ? <div className="ac-shell__toolbar">{toolbar}</div> : null}
+      <main className="kochab-shell__content">
+        <header className="kochab-shell__header">
+          <h1 className="kochab-shell__title">{title}</h1>
+          {toolbar ? <div className="kochab-shell__toolbar">{toolbar}</div> : null}
         </header>
-        <div className="ac-shell__body">{children}</div>
+        <div className="kochab-shell__body">{children}</div>
       </main>
     </div>
   );

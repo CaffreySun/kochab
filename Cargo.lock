@@ -48,31 +48,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "android-controller"
-version = "0.1.0"
-dependencies = [
- "adb-client",
- "android-core",
- "anyhow",
- "base64 0.22.1",
- "futures-util",
- "parking_lot",
- "scrcpy-protocol",
- "scrcpy-session",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "android-core"
 version = "0.1.0"
 dependencies = [
@@ -1947,6 +1922,31 @@ checksum = "0fbe853b403ae61a04233030ae8a79d94975281ed9770a1f9e246732b534b28d"
 dependencies = [
  "bitflags 2.13.2",
  "serde",
+]
+
+[[package]]
+name = "kochab"
+version = "0.1.0"
+dependencies = [
+ "adb-client",
+ "android-core",
+ "anyhow",
+ "base64 0.22.1",
+ "futures-util",
+ "parking_lot",
+ "scrcpy-protocol",
+ "scrcpy-session",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

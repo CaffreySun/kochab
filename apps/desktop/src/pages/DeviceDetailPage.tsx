@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Button, Dialog, MessagePlugin, Textarea } from 'tdesign-react';
-import type { DeviceInfo } from '@ac/ipc-contract';
-import { EmptyState } from '@ac/ui';
+import type { DeviceInfo } from '@kochab/ipc-contract';
+import { EmptyState } from '@kochab/ui';
 import type { Api } from '../ipc';
 import { toMessage } from '../ipc';
 import { fileStamp, useRecording } from '../features/recording/useRecording';
@@ -134,7 +134,7 @@ export function DeviceDetailPage({
 
   if (!device) {
     return (
-      <div className="ac-detail">
+      <div className="kochab-detail">
         <EmptyState description="请回到主窗口的设备列表重新连接后再打开。" title="设备未连接" />
       </div>
     );
@@ -144,12 +144,12 @@ export function DeviceDetailPage({
 
   return (
     <div
-      className="ac-detail"
+      className="kochab-detail"
       data-orientation={aspect > 1 ? 'landscape' : 'portrait'}
-      style={{ '--ac-mirror-aspect': aspect } as CSSProperties}
+      style={{ '--kochab-mirror-aspect': aspect } as CSSProperties}
     >
       {/* 画面与竖排按钮栏始终在一起：横屏时这一组在上、面板在下 */}
-      <div className="ac-detail__main">
+      <div className="kochab-detail__main">
         <MirrorStage
           error={mirror.error}
           sendTouch={mirror.sendTouch}
@@ -178,7 +178,7 @@ export function DeviceDetailPage({
       </div>
 
       {panel ? (
-        <section className="ac-detail__panel">
+        <section className="kochab-detail__panel">
           {panel === 'apps' ? <AppsPage api={api} device={device} /> : null}
           {panel === 'files' ? <FilesPage api={api} device={device} /> : null}
           {panel === 'overview' ? <OverviewPage api={api} device={device} /> : null}
@@ -196,7 +196,7 @@ export function DeviceDetailPage({
           onCancel={() => setTextOpen(false)}
           onClose={() => setTextOpen(false)}
         >
-          <div className="ac-detail__text">
+          <div className="kochab-detail__text">
             <Textarea
               autosize={{ minRows: 2, maxRows: 5 }}
               disabled={!streaming}
@@ -204,7 +204,7 @@ export function DeviceDetailPage({
               value={draftText}
               onChange={(value) => setDraftText(value)}
             />
-            <div className="ac-detail__text-actions">
+            <div className="kochab-detail__text-actions">
               <Button
                 disabled={!streaming || draftText.length === 0}
                 size="small"
