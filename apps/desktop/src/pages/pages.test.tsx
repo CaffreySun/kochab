@@ -75,7 +75,9 @@ describe('AppsPage', () => {
 
     expect(await screen.findByText('应用详情')).toBeInTheDocument();
     expect(await screen.findByText(/2\.4\.1（20401）/)).toBeInTheDocument();
-    expect(screen.getByText(/2024\/9\/10/)).toBeInTheDocument();
+    // 安装时间按系统 locale 渲染，测试不绑定某一种日期格式
+    expect(screen.getByText(new Date(1_725_000_000_000).toLocaleString())).toBeInTheDocument();
+    expect(screen.getByText(new Date(1_725_900_000_000).toLocaleString())).toBeInTheDocument();
   });
 
   it('关键字可以过滤列表', async () => {
