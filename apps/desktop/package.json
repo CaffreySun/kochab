@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Kochab 桌面应用：Android 多设备控制面（Tauri 2 + React + TDesign）",
+  "license": "GPL-3.0-only",
   "scripts": {
     "dev": "tauri dev",
     "dev:web": "vite",

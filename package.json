@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Android 多设备控制面：设备、应用、文件、Shell 与实时投屏（adb + scrcpy / Tauri 2）",
+  "license": "GPL-3.0-only",
   "packageManager": "pnpm@10.15.0",
   "engines": {
     "node": ">=22.11.0"

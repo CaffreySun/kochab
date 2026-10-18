@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "渲染进程侧的 scrcpy 视频解码与输入映射（WebCodecs）",
+  "license": "GPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

@@ -23,7 +23,7 @@ Kochab 是小熊座 β，古代的北极星，和 Pherkad 一起被称为「极�
 - npm 包：根包 `kochab`，工作区 scope `@kochab/*`
 - localStorage key 前缀：`kochab.*`
 - CSS/BEM 前缀：`kochab-`
-- 仓库地址暂填 `https://github.com/kochab/kochab`，创建实际仓库后替换
+- 仓库地址：`https://github.com/CaffreySun/kochab`
 
 ## 后果
 

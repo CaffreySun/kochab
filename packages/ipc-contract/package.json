@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Rust ↔ 渲染进程之间的类型契约（由 ts-rs 从 Rust 侧生成）",
+  "license": "GPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

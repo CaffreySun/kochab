@@ -88,4 +88,4 @@ pnpm test:device -- --serial d4535f72
 
 ## 许可
 
-MIT
+GPL-3.0-only，完整文本见 [LICENSE](LICENSE)。
