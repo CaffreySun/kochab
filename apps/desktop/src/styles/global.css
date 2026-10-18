@@ -392,31 +392,6 @@ body {
   font-size: 12px;
 }
 
-/* 状态浮在画面上，不占布局高度 */
-.ac-mirror-stage__recording {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  padding: 4px 10px;
-  color: #fff;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-  background: rgb(0 0 0 / 62%);
-  border-radius: 999px;
-  backdrop-filter: blur(4px);
-}
-
-.ac-mirror-stage__recording-dot {
-  width: 8px;
-  height: 8px;
-  background: #e34d59;
-  border-radius: 50%;
-}
-
 /* 竖排按钮栏：窄，所以几乎不影响画面宽度 */
 .ac-mirror-rail {
   display: flex;

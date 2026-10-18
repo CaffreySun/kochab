@@ -152,7 +152,6 @@ export function DeviceDetailPage({
       <div className="ac-detail__main">
         <MirrorStage
           error={mirror.error}
-          recordingSeconds={recording.active ? recording.elapsed : null}
           sendTouch={mirror.sendTouch}
           setCanvas={setCanvas}
           status={status}

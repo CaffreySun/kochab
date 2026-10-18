@@ -869,7 +869,7 @@ describe('DeviceDetailPage', () => {
     expect(await screen.findByText(/screenshot\.png/)).toBeInTheDocument();
   });
 
-  it('投屏栏可以开始/停止录屏，录制徽标独立于投屏状态', async () => {
+  it('投屏栏可以开始/停止录屏，录制状态不依赖投屏状态', async () => {
     const { api, onInvoke } = setup();
     const user = userEvent.setup();
     render(
@@ -888,7 +888,9 @@ describe('DeviceDetailPage', () => {
         serial: 'd4535f72',
       });
     });
-    expect(await screen.findByTestId('recording-badge')).toBeInTheDocument();
+    // 画面里不再放录制浮层；状态由竖排栏按钮本身表达
+    expect(screen.queryByTestId('recording-badge')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '停止录屏' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '停止录屏' }));
     await waitFor(() => {

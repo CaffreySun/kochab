@@ -1,15 +1,12 @@
 import { useCallback, useRef } from 'react';
 import { Button, Loading } from 'tdesign-react';
 import type { MirrorStatus } from './useMirror';
-import { formatDuration } from '../recording/useRecording';
 
 export interface MirrorStageProps {
   /** 回调 ref：调用方需要把这个 canvas 交给解码器，用回调形式避免 ref 对象的变型问题 */
   setCanvas: (element: HTMLCanvasElement | null) => void;
   status: MirrorStatus;
   error: string | null;
-  /** 正在录屏时的秒数；null 表示未录屏 */
-  recordingSeconds?: number | null;
   onStart: () => void;
   sendTouch: (action: 'down' | 'move' | 'up', clientX: number, clientY: number) => void;
 }
@@ -23,14 +20,7 @@ export interface MirrorStageProps {
  * 它必须常驻挂载：右栏面板开合时不能卸载本组件，否则会话会被停掉重建，
  * 而 SPS/PPS 只在建连时下发，重建期间画面是黑的。
  */
-export function MirrorStage({
-  setCanvas,
-  status,
-  error,
-  recordingSeconds = null,
-  onStart,
-  sendTouch,
-}: MirrorStageProps) {
+export function MirrorStage({ setCanvas, status, error, onStart, sendTouch }: MirrorStageProps) {
   const dragging = useRef(false);
 
   const handlePointerDown = useCallback(
@@ -72,14 +62,6 @@ export function MirrorStage({
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
       />
-
-      {/* 录制状态不依赖投屏状态：投屏中断/重连时仍然可见 */}
-      {recordingSeconds !== null ? (
-        <div className="ac-mirror-stage__recording" data-testid="recording-badge">
-          <span aria-hidden="true" className="ac-mirror-stage__recording-dot" />
-          录制中 {formatDuration(recordingSeconds)}
-        </div>
-      ) : null}
 
       {streaming ? null : (
         <div className="ac-mirror-stage__overlay">
