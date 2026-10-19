@@ -3,11 +3,14 @@
 //! 默认跳过；`pnpm test:device` 会注入 `ANDROID_TEST_DEVICE` 后真正执行。
 //! 所有会修改设备状态的用例都必须自行清理。
 
+use std::fs::File;
+use std::io::BufReader;
 use std::path::PathBuf;
 
 use adb_client::AdbClient;
 use android_core::testing::{skip_reason, temp_name};
 use android_core::{app, device, display, file, media, toolchain};
+use mp4::{Mp4Reader, TrackType};
 
 macro_rules! require_device {
     () => {
@@ -399,4 +402,29 @@ async fn 录屏开始停止并落盘() {
 
     assert!(saved.bytes > 0, "录屏文件不应为空");
     assert!(PathBuf::from(&saved.path).is_file(), "本地文件应存在");
+
+    // screenrecord 在静止画面只输出很少几帧；保存时必须补帧，
+    // 否则 Windows 播放器开头会黑屏到第一次画面变化。
+    let file = File::open(&saved.path).expect("打开录屏失败");
+    let size = file.metadata().expect("读取录屏大小失败").len();
+    let mut reader = Mp4Reader::read_header(BufReader::new(file), size).expect("解析录屏失败");
+    let (track_id, timescale, sample_count) = {
+        let track = reader
+            .tracks()
+            .values()
+            .find(|t| matches!(t.track_type(), Ok(TrackType::Video)))
+            .expect("录屏缺少视频轨");
+        (track.track_id(), track.timescale(), track.sample_count())
+    };
+    assert!(sample_count > 1, "静止画面也应补出多帧");
+    let mut max_gap = 0u32;
+    for id in 1..=sample_count {
+        let sample = reader
+            .read_sample(track_id, id)
+            .expect("读取录屏帧失败")
+            .expect("录屏帧不存在");
+        max_gap = max_gap.max(sample.duration);
+    }
+    let max_gap_us = u128::from(max_gap) * 1_000_000 / u128::from(timescale);
+    assert!(max_gap_us <= 100_000, "补帧后最大间隔仍为 {max_gap_us}us");
 }
