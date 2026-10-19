@@ -1,37 +1,51 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 12 104 104" width="1024" height="1024" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0052D9" />
-      <stop offset="55%" stop-color="#2A6BFF" />
-      <stop offset="100%" stop-color="#00A2FF" />
+    <linearGradient id="p3-slab" x1="18" y1="14" x2="110" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#334155"/>
+      <stop offset="0.42" stop-color="#172033"/>
+      <stop offset="1" stop-color="#070B12"/>
     </linearGradient>
-    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.96" />
-      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.82" />
+    <linearGradient id="p3-rim" x1="16" y1="12" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="0.42" stop-color="#94A3B8" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#020617" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="p3-frame" x1="42" y1="24" x2="86" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="0.35" stop-color="#B8C4D4"/>
+      <stop offset="0.7" stop-color="#64748B"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="p3-screen" x1="46" y1="28" x2="82" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16243A"/>
+      <stop offset="0.55" stop-color="#0A1220"/>
+      <stop offset="1" stop-color="#03060B"/>
+    </linearGradient>
+    <linearGradient id="p3-gold" x1="64" y1="18" x2="64" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7DD"/>
+      <stop offset="0.38" stop-color="#E3C27A"/>
+      <stop offset="1" stop-color="#986625"/>
+    </linearGradient>
+    <linearGradient id="p3-gold-dark" x1="72" y1="64" x2="108" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#C89D53"/>
+      <stop offset="1" stop-color="#744A1B"/>
+    </linearGradient>
+    <linearGradient id="p3-sweep" x1="42" y1="24" x2="86" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
   </defs>
-
-  <rect width="1024" height="1024" rx="232" fill="url(#bg)" />
-
-  <!-- 手机主体 -->
-  <rect x="286" y="196" width="330" height="632" rx="56" fill="url(#screen)" />
-  <rect x="286" y="196" width="330" height="120" rx="56" fill="#0B4EC4" fill-opacity="0.16" />
-  <circle cx="451" cy="252" r="13" fill="#0B4EC4" fill-opacity="0.35" />
-  <rect x="404" y="792" width="94" height="12" rx="6" fill="#0B4EC4" fill-opacity="0.28" />
-
-  <!-- 手机屏幕内的波形，表示「正在投屏」 -->
-  <g stroke="#0B4EC4" stroke-opacity="0.55" stroke-width="18" stroke-linecap="round">
-    <line x1="336" y1="412" x2="336" y2="530" />
-    <line x1="386" y1="380" x2="386" y2="562" />
-    <line x1="436" y1="348" x2="436" y2="594" />
-    <line x1="486" y1="400" x2="486" y2="542" />
-    <line x1="536" y1="368" x2="536" y2="574" />
-  </g>
-
-  <!-- 投屏信号 -->
-  <g fill="none" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round">
-    <path d="M690 452 A176 176 0 0 1 690 648" stroke-opacity="0.95" />
-    <path d="M754 386 A268 268 0 0 1 754 714" stroke-opacity="0.65" />
-  </g>
-  <circle cx="666" cy="550" r="30" fill="#FFFFFF" />
+  <rect x="12" y="12" width="104" height="104" rx="26" fill="url(#p3-slab)"/>
+  <rect x="12" y="12" width="104" height="104" rx="26" stroke="url(#p3-rim)" stroke-width="1.5"/>
+  <rect x="42" y="24" width="44" height="80" rx="12" fill="#050A12" stroke="url(#p3-frame)" stroke-width="2.5"/>
+  <rect x="45.5" y="27.5" width="37" height="73" rx="9" fill="url(#p3-screen)"/>
+  <rect x="45.5" y="27.5" width="37" height="73" rx="9" fill="url(#p3-sweep)"/>
+  <rect x="44.5" y="26.5" width="39" height="75" rx="10.5" stroke="#D9B66B" stroke-opacity="0.25" stroke-width="0.8"/>
+  <path d="M64 14 L72 55 L114 64 L72 73 L64 114 L56 73 L14 64 L56 55 Z" fill="#03060B" opacity="0.6"/>
+  <path d="M64 18 L72 56 L110 64 L72 72 L64 110 L56 72 L18 64 L56 56 Z" fill="url(#p3-gold)"/>
+  <path d="M64 18 L72 56 L110 64 L64 64 Z" fill="#FFF8E2" opacity="0.45"/>
+  <path d="M110 64 L72 72 L64 110 L64 64 Z" fill="url(#p3-gold-dark)" opacity="0.78"/>
+  <path d="M64 18 L56 56 L18 64 L64 64 Z" fill="#F5E3B4" opacity="0.4"/>
+  <path d="M64 18 L72 56 L110 64 L72 72 L64 110 L56 72 L18 64 L56 56 Z" stroke="#FFF6D8" stroke-opacity="0.3" stroke-width="0.8"/>
 </svg>
